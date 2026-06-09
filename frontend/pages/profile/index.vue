@@ -114,7 +114,7 @@
 
       <!-- Footer -->
       <view class="profile-footer">
-        <text class="profile-footer__text">Version 1.0.0 · Build 42</text>
+        <text class="profile-footer__text">Version 1.0.2 · Learning OS</text>
       </view>
 
       <view class="profile-bottom-spacer" />
