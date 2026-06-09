@@ -38,11 +38,4 @@ page {
   min-height: 100vh;
   padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
 }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
 </style>

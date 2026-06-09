@@ -114,12 +114,6 @@
         "selectedIconPath": "static/tab/growth-filled.png"
       },
       {
-        "pagePath": "pages/reward/index",
-        "text": "梦想奖励",
-        "iconPath": "static/tab/reward-outlined.png",
-        "selectedIconPath": "static/tab/reward-filled.png"
-      },
-      {
         "pagePath": "pages/profile/index",
         "text": "我的",
         "iconPath": "static/tab/profile-outlined.png",
