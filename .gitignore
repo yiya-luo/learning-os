@@ -27,3 +27,4 @@ frontend/unpackage/
 # Env
 .env
 .env.local
+private.key
