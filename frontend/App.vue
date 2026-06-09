@@ -24,11 +24,19 @@ const statusBarHeight = ref(20)
 
 onMounted(() => {
   try {
-    const info = uni.getSystemInfoSync()
-    if (info.statusBarHeight) {
-      statusBarHeight.value = info.statusBarHeight
+    // Use WeChat capsule button position as reference (standard for custom nav bar)
+    const menuButton = uni.getMenuButtonBoundingClientRect()
+    if (menuButton) {
+      // Content starts right below the capsule button
+      statusBarHeight.value = menuButton.top + menuButton.height
     }
-  } catch {}
+  } catch {
+    // Fallback: status bar + capsule estimate
+    try {
+      const info = uni.getSystemInfoSync()
+      statusBarHeight.value = (info.statusBarHeight || 20) + 50
+    } catch {}
+  }
 })
 </script>
 
@@ -46,7 +54,7 @@ page {
 
 .app {
   min-height: 100vh;
-  padding-top: calc(var(--safe-top, 20px) + 44px);
+  padding-top: var(--safe-top, 70px);
   padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
 }
 </style>
