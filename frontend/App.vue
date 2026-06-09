@@ -1,5 +1,5 @@
 <template>
-  <view class="app" :data-theme="theme">
+  <view class="app" :data-theme="theme" :style="{ '--safe-top': statusBarHeight + 'px' }">
     <slot />
     <EncouragementModal
       :visible="encouragementStore.visible"
@@ -14,12 +14,22 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useEncouragementStore } from '@/store/encouragement'
 import EncouragementModal from '@/components/EncouragementModal.vue'
 
 const encouragementStore = useEncouragementStore()
 const theme = ref('light')
+const statusBarHeight = ref(20)
+
+onMounted(() => {
+  try {
+    const info = uni.getSystemInfoSync()
+    if (info.statusBarHeight) {
+      statusBarHeight.value = info.statusBarHeight
+    }
+  } catch {}
+})
 </script>
 
 <style>
@@ -36,6 +46,7 @@ page {
 
 .app {
   min-height: 100vh;
+  padding-top: calc(var(--safe-top, 20px) + 44px);
   padding-bottom: calc(var(--tab-bar-height) + env(safe-area-inset-bottom, 0px));
 }
 </style>

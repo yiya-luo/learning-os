@@ -310,7 +310,7 @@ onMounted(() => {
 
 <style scoped>
 .home-page {
-  padding: var(--page-padding-top) var(--page-padding-h);
+  padding: 0 var(--page-padding-h) var(--section-gap);
   min-height: 100vh;
 }
 

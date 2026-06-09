@@ -285,7 +285,7 @@ onMounted(() => {
 }
 
 .profile-content {
-  padding: var(--space-xl) var(--page-padding-h);
+  padding: 0 var(--page-padding-h);
 }
 
 /* Header */
@@ -555,7 +555,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: var(--space-xl) var(--page-padding-h);
+  padding: 0 var(--page-padding-h);
 }
 
 .profile-skeleton__avatar {
