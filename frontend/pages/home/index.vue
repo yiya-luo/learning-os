@@ -36,6 +36,19 @@
         action-text="导入学习计划"
         @action="goImport"
       />
+      <!-- Quick start actions -->
+      <view class="home-quick-actions">
+        <view class="quick-action quick-action--gold" @tap="goImport">
+          <text class="quick-action__icon">🎯</text>
+          <text class="quick-action__title">设置目标</text>
+          <text class="quick-action__desc">导入学习计划</text>
+        </view>
+        <view class="quick-action quick-action--blue" @tap="goRewardSetup">
+          <text class="quick-action__icon">🎁</text>
+          <text class="quick-action__title">设置激励</text>
+          <text class="quick-action__desc">配置梦想奖励</text>
+        </view>
+      </view>
     </view>
 
     <!-- Normal content -->
@@ -114,6 +127,18 @@
       <view class="home-section">
         <view class="home-encouragement" @tap="refreshEncouragement">
           <text class="home-encouragement__text">{{ encouragement }}</text>
+        </view>
+      </view>
+
+      <!-- Quick Actions -->
+      <view class="home-quick-actions">
+        <view class="quick-action quick-action--gold" @tap="goImport">
+          <text class="quick-action__icon">🎯</text>
+          <text class="quick-action__title">设置目标</text>
+        </view>
+        <view class="quick-action quick-action--blue" @tap="goRewardSetup">
+          <text class="quick-action__icon">🎁</text>
+          <text class="quick-action__title">设置激励</text>
         </view>
       </view>
     </template>
@@ -236,6 +261,10 @@ function goReward() {
 
 function goImport() {
   uni.navigateTo({ url: '/pages/import/index' })
+}
+
+function goRewardSetup() {
+  uni.navigateTo({ url: '/pages/reward/index' })
 }
 
 /* Fly-in animation trigger */
@@ -407,6 +436,45 @@ onMounted(() => {
   font-style: italic;
   line-height: var(--leading-relaxed);
   opacity: 0.9;
+}
+
+/* Quick Actions */
+.home-quick-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--section-gap);
+}
+
+.quick-action {
+  flex: 1;
+  background: var(--color-bg-card-light);
+  border-radius: var(--card-radius);
+  padding: var(--space-md);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xxs);
+  transition: transform 150ms var(--anim-ease-out);
+}
+
+.quick-action:active {
+  transform: scale(0.97);
+}
+
+.quick-action__icon {
+  font-size: 28px;
+}
+
+.quick-action__title {
+  font-size: var(--font-sm);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.quick-action__desc {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
 }
 
 /* Skeleton */

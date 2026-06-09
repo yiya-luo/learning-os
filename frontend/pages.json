@@ -87,7 +87,8 @@
     "selectedColor": "#E6B93D",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "black",
-    "height": "56px",
+    "iconWidth": "24px",
+    "iconHeight": "24px",
     "list": [
       {
         "pagePath": "pages/home/index",

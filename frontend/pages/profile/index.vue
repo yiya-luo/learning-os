@@ -6,7 +6,7 @@
       <view class="profile-skeleton__name" />
       <view class="profile-skeleton__level" />
       <view class="profile-skeleton__stats" />
-      <view v-for="i in 8" :key="i" class="profile-skeleton__menu" />
+      <view v-for="i in 6" :key="i" class="profile-skeleton__menu" />
     </view>
 
     <!-- Error -->
@@ -57,72 +57,58 @@
 
       <!-- Menu list -->
       <view class="profile-menu">
-        <view class="profile-menu__item" @tap="goTimeline">
-          <text class="profile-menu__icon">📅</text>
-          <text class="profile-menu__title">成长时间线</text>
-          <text class="profile-menu__arrow">→</text>
-        </view>
-
-        <view class="profile-menu__item" @tap="goAnalytics">
-          <text class="profile-menu__icon">📊</text>
-          <text class="profile-menu__title">数据洞察</text>
-          <text class="profile-menu__arrow">→</text>
-        </view>
-
-        <view class="profile-menu__item" @tap="goImport">
-          <text class="profile-menu__icon">📥</text>
-          <text class="profile-menu__title">导入学习 DSL</text>
-          <text class="profile-menu__arrow">→</text>
-        </view>
-
-        <view class="profile-menu__item" @tap="handleExport">
-          <text class="profile-menu__icon">📤</text>
-          <text class="profile-menu__title">导出学习数据</text>
-          <text class="profile-menu__arrow">→</text>
-        </view>
-
-        <view class="profile-menu__item" @tap="handlePromptTemplate">
-          <text class="profile-menu__icon">📋</text>
-          <text class="profile-menu__title">提示词模板</text>
-          <text class="profile-menu__arrow">→</text>
-        </view>
-
-        <view class="profile-menu__item" @tap="handleThemeToggle">
-          <text class="profile-menu__icon">🎨</text>
-          <text class="profile-menu__title">深色模式</text>
-          <view
-            class="theme-toggle"
-            :class="{ 'theme-toggle--on': isDarkMode }"
-            @tap.stop="handleThemeToggle"
-          >
-            <view class="theme-toggle__knob" />
+        <view class="profile-menu__group">
+          <text class="profile-menu__group-title">学习</text>
+          <view class="profile-menu__item" @tap="goTimeline">
+            <text class="profile-menu__icon">📅</text>
+            <text class="profile-menu__title">成长时间线</text>
+            <text class="profile-menu__arrow">→</text>
           </view>
-        </view>
-
-        <view class="profile-menu__item" @tap="handleBackup">
-          <text class="profile-menu__icon">💾</text>
-          <text class="profile-menu__title">数据备份与恢复</text>
-          <text class="profile-menu__arrow">→</text>
-        </view>
-
-        <view class="profile-menu__item" @tap="handleReminder">
-          <text class="profile-menu__icon">🔔</text>
-          <text class="profile-menu__title">每日提醒</text>
-          <view class="profile-menu__right">
-            <text class="profile-menu__value">{{ reminderLabel }}</text>
+          <view class="profile-menu__item" @tap="goAnalytics">
+            <text class="profile-menu__icon">📊</text>
+            <text class="profile-menu__title">数据洞察</text>
+            <text class="profile-menu__arrow">→</text>
+          </view>
+          <view class="profile-menu__item" @tap="goImport">
+            <text class="profile-menu__icon">📥</text>
+            <text class="profile-menu__title">导入学习计划</text>
             <text class="profile-menu__arrow">→</text>
           </view>
         </view>
 
-        <view class="profile-menu__item" @tap="handleAbout">
-          <text class="profile-menu__icon">ℹ️</text>
-          <text class="profile-menu__title">关于 Learning OS</text>
-          <text class="profile-menu__arrow">→</text>
+        <view class="profile-menu__group">
+          <text class="profile-menu__group-title">设置</text>
+          <view class="profile-menu__item" @tap="handleThemeToggle">
+            <text class="profile-menu__icon">🎨</text>
+            <text class="profile-menu__title">深色模式</text>
+            <view
+              class="theme-toggle"
+              :class="{ 'theme-toggle--on': isDarkMode }"
+              @tap.stop="handleThemeToggle"
+            >
+              <view class="theme-toggle__knob" />
+            </view>
+          </view>
+          <view class="profile-menu__item" @tap="handleReminder">
+            <text class="profile-menu__icon">🔔</text>
+            <text class="profile-menu__title">每日提醒</text>
+            <view class="profile-menu__right">
+              <text class="profile-menu__value">{{ reminderLabel }}</text>
+              <text class="profile-menu__arrow">→</text>
+            </view>
+          </view>
         </view>
 
-        <view class="profile-menu__item profile-menu__item--danger" @tap="handleLogout">
-          <text class="profile-menu__icon">🚪</text>
-          <text class="profile-menu__title profile-menu__title--danger">退出登录</text>
+        <view class="profile-menu__group">
+          <view class="profile-menu__item" @tap="handleAbout">
+            <text class="profile-menu__icon">ℹ️</text>
+            <text class="profile-menu__title">关于 Learning OS</text>
+            <text class="profile-menu__arrow">→</text>
+          </view>
+          <view class="profile-menu__item profile-menu__item--danger" @tap="handleLogout">
+            <text class="profile-menu__icon">🚪</text>
+            <text class="profile-menu__title profile-menu__title--danger">退出登录</text>
+          </view>
         </view>
       </view>
 
@@ -260,24 +246,12 @@ function goAnalytics() {
   uni.navigateTo({ url: '/pages/analytics/index' })
 }
 
-function handleExport() {
-  uni.showToast({ title: '导出功能开发中', icon: 'none' })
-}
-
-function handlePromptTemplate() {
-  uni.showToast({ title: '提示词模板开发中', icon: 'none' })
-}
-
 function handleThemeToggle() {
   isDarkMode.value = !isDarkMode.value
   try {
     uni.setStorageSync('learning-os-theme', isDarkMode.value ? 'dark' : 'light')
   } catch {}
   applyTheme()
-}
-
-function handleBackup() {
-  uni.showToast({ title: '备份功能开发中', icon: 'none' })
 }
 
 function handleReminder() {
@@ -386,10 +360,26 @@ onMounted(() => {
 
 /* Menu */
 .profile-menu {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.profile-menu__group {
   background: var(--color-bg-card-light);
   border-radius: var(--card-radius);
   box-shadow: var(--shadow-card);
   overflow: hidden;
+}
+
+.profile-menu__group-title {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+  font-weight: var(--weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: var(--space-sm) var(--card-padding) 0;
+  display: block;
 }
 
 .profile-menu__item {
@@ -397,12 +387,7 @@ onMounted(() => {
   align-items: center;
   height: 48px;
   padding: 0 var(--card-padding);
-  border-bottom: 1px solid var(--color-gray-100);
   transition: background var(--anim-duration-fast);
-}
-
-.profile-menu__item:last-child {
-  border-bottom: none;
 }
 
 .profile-menu__item:active {
@@ -410,7 +395,7 @@ onMounted(() => {
 }
 
 .profile-menu__item--danger {
-  border-top: 1px solid var(--color-gray-100);
+  background: transparent;
 }
 
 .profile-menu__icon {
