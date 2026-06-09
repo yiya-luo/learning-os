@@ -1,5 +1,5 @@
 // 部署时修改 API_BASE 为你的后端地址
-const API_BASE = 'https://your-server.com/api'
+const API_BASE = 'https://learningos-268322-8-1441734924.sh.run.tcloudbase.com/api'
 const BASE_URL = API_BASE
 
 async function request(url, options = {}) {

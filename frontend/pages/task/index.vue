@@ -254,7 +254,6 @@ async function handleCheckin() {
     } catch (e) {}
 
     // Refresh reward progress after checkin
-    const pid = projectStore.currentProjectId
     if (pid) {
       rewardStore.fetchRewardProgress(pid)
     }
