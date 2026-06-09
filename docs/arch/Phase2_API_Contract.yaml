@@ -1,0 +1,985 @@
+openapi: "3.0.3"
+info:
+  title: Learning OS API — Phase 2 Enhancements
+  description: |
+    New and modified API endpoints for Phase 2: gamification, heatmap,
+    learning map DAG, stage detail, achievements, easter eggs, and user preferences.
+
+    These endpoints extend the v1.0 contract without breaking changes.
+    All v1.0 paths continue to work as specified.
+  version: "2.0.0"
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  # ═══════════════════════════════════════════════════════════════
+  #  HEATMAP
+  # ═══════════════════════════════════════════════════════════════
+  /api/users/me/heatmap:
+    get:
+      summary: Get check-in heatmap data for the current user
+      description: |
+        Returns daily check-in counts and XP for the given date range.
+        Used to render the GitHub-style contribution heatmap and activity stats.
+      operationId: getUserHeatmap
+      tags: [Progress]
+      parameters:
+        - name: days
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 365
+            minimum: 1
+            maximum: 730
+          description: Number of days to look back from today (inclusive)
+      responses:
+        "200":
+          description: Heatmap data with summary stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HeatmapResponse"
+              example:
+                heatmap:
+                  - date: "2026-06-08"
+                    count: 3
+                    xp: 85
+                  - date: "2026-06-07"
+                    count: 0
+                    xp: 0
+                  - date: "2026-06-06"
+                    count: 2
+                    xp: 50
+                  - date: "2026-06-05"
+                    count: 1
+                    xp: 20
+                  - date: "2026-06-04"
+                    count: 0
+                    xp: 0
+                  - date: "2026-06-03"
+                    count: 4
+                    xp: 120
+                  - date: "2026-06-02"
+                    count: 2
+                    xp: 60
+                  - date: "2026-06-01"
+                    count: 1
+                    xp: 30
+                stats:
+                  total_days_active: 120
+                  longest_streak: 30
+                  current_streak: 7
+                  average_xp_per_day: 45.2
+                  total_checkins: 350
+                  best_day:
+                    date: "2026-05-15"
+                    xp: 200
+        "422":
+          description: Invalid days parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  TASK DAG (Learning Map)
+  # ═══════════════════════════════════════════════════════════════
+  /api/projects/{pid}/dag:
+    get:
+      summary: Get task dependency graph for map visualization
+      description: |
+        Returns all tasks as nodes with dependency edges and stage groupings.
+        Used by the frontend to render the interactive learning map.
+        Tasks are topologically sorted within each stage.
+      operationId: getProjectDag
+      tags: [Projects]
+      parameters:
+        - name: pid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: DAG structure with nodes, edges, and stage metadata
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DagResponse"
+              example:
+                nodes:
+                  - id: "T001"
+                    title: "变量与数据类型"
+                    type: "theory"
+                    status: "done"
+                    xp: 20
+                    stage_id: "S1"
+                    stage_title: "基础准备"
+                    sort_order: 1
+                  - id: "T002"
+                    title: "编写第一个计算器"
+                    type: "practice"
+                    status: "doing"
+                    xp: 30
+                    stage_id: "S1"
+                    stage_title: "基础准备"
+                    sort_order: 2
+                  - id: "T003"
+                    title: "学习笔记"
+                    type: "output"
+                    status: "pending"
+                    xp: 50
+                    stage_id: "S1"
+                    stage_title: "基础准备"
+                    sort_order: 3
+                  - id: "T004"
+                    title: "if-else 条件判断"
+                    type: "theory"
+                    status: "pending"
+                    xp: 20
+                    stage_id: "S2"
+                    stage_title: "控制流"
+                    sort_order: 1
+                  - id: "T005"
+                    title: "猜数字游戏"
+                    type: "practice"
+                    status: "pending"
+                    xp: 40
+                    stage_id: "S2"
+                    stage_title: "控制流"
+                    sort_order: 2
+                  - id: "T006"
+                    title: "代码回顾"
+                    type: "output"
+                    status: "pending"
+                    xp: 60
+                    stage_id: "S2"
+                    stage_title: "控制流"
+                    sort_order: 3
+                edges:
+                  - from: "T001"
+                    to: "T004"
+                  - from: "T004"
+                    to: "T005"
+                  - from: "T001"
+                    to: "T006"
+                stages:
+                  - title: "基础准备"
+                    progress: 0.75
+                    task_count: 3
+                    done_count: 2
+                  - title: "控制流"
+                    progress: 0.0
+                    task_count: 3
+                    done_count: 0
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  STAGE DETAIL
+  # ═══════════════════════════════════════════════════════════════
+  /api/projects/{pid}/stages/{sid}:
+    get:
+      summary: Get stage detail with task list and navigation
+      description: |
+        Returns a single stage with its tasks and links to adjacent stages.
+        Tasks include status, type, and XP so the frontend can render
+        a stage-level progress view without additional API calls.
+      operationId: getStageDetail
+      tags: [Projects]
+      parameters:
+        - name: pid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: sid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Stage with full task list and navigation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageDetailResponse"
+              example:
+                id: "S1"
+                title: "基础准备"
+                sort_order: 1
+                progress: 0.75
+                task_count: 3
+                done_count: 2
+                tasks:
+                  - id: "T001"
+                    title: "变量与数据类型"
+                    type: "theory"
+                    status: "done"
+                    xp: 20
+                    sort_order: 1
+                    blocked: false
+                  - id: "T002"
+                    title: "编写第一个计算器"
+                    type: "practice"
+                    status: "doing"
+                    xp: 30
+                    sort_order: 2
+                    blocked: false
+                  - id: "T003"
+                    title: "学习笔记"
+                    type: "output"
+                    status: "pending"
+                    xp: 50
+                    sort_order: 3
+                    blocked: true
+                next_stage_id: "S2"
+                next_stage_title: "控制流"
+                prev_stage_id: null
+                prev_stage_title: null
+        "404":
+          description: Project or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  ACHIEVEMENTS
+  # ═══════════════════════════════════════════════════════════════
+  /api/users/me/achievements:
+    get:
+      summary: Get user achievements
+      description: |
+        Returns all achievements — both earned and locked — with unlock
+        dates and XP bonuses. Unearned achievements have null earned_at and xp_bonus.
+      operationId: getUserAchievements
+      tags: [Progress]
+      responses:
+        "200":
+          description: Achievement list with summary counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AchievementsResponse"
+              example:
+                achievements:
+                  - id: "ACH_FIRST_CHECKIN"
+                    name: "初出茅庐"
+                    description: "完成第一次打卡"
+                    icon: "star"
+                    earned_at: "2026-06-01T10:30:00Z"
+                    xp_bonus: 10
+                  - id: "ACH_STREAK_3"
+                    name: "连续三日"
+                    description: "连续打卡 3 天"
+                    icon: "fire"
+                    earned_at: "2026-06-04T09:00:00Z"
+                    xp_bonus: 15
+                  - id: "ACH_STREAK_7"
+                    name: "周不懈怠"
+                    description: "连续打卡 7 天"
+                    icon: "fire"
+                    earned_at: null
+                    xp_bonus: null
+                  - id: "ACH_STREAK_30"
+                    name: "月度全勤"
+                    description: "连续打卡 30 天"
+                    icon: "trophy"
+                    earned_at: null
+                    xp_bonus: null
+                  - id: "ACH_LEVEL_5"
+                    name: "小有所成"
+                    description: "达到等级 5"
+                    icon: "star"
+                    earned_at: null
+                    xp_bonus: null
+                  - id: "ACH_LEVEL_10"
+                    name: "学富五车"
+                    description: "达到等级 10"
+                    icon: "trophy"
+                    earned_at: null
+                    xp_bonus: null
+                  - id: "ACH_TASKS_10"
+                    name: "始知学海"
+                    description: "完成 10 个任务"
+                    icon: "book"
+                    earned_at: "2026-06-06T15:00:00Z"
+                    xp_bonus: 20
+                  - id: "ACH_TASKS_50"
+                    name: "学而不厌"
+                    description: "完成 50 个任务"
+                    icon: "book"
+                    earned_at: null
+                    xp_bonus: null
+                  - id: "ACH_TASKS_100"
+                    name: "水滴石穿"
+                    description: "完成 100 个任务"
+                    icon: "trophy"
+                    earned_at: null
+                    xp_bonus: null
+                  - id: "ACH_ALL_TYPES"
+                    name: "全面发展"
+                    description: "完成过 theory, practice, output 三种类型的任务"
+                    icon: "check-circle"
+                    earned_at: "2026-06-03T12:00:00Z"
+                    xp_bonus: 25
+                total_earned: 4
+                total_available: 10
+
+  # ═══════════════════════════════════════════════════════════════
+  #  THEME (User Preference)
+  # ═══════════════════════════════════════════════════════════════
+  /api/users/me/theme:
+    patch:
+      summary: Set user UI theme preference
+      operationId: setUserTheme
+      tags: [User]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetThemeRequest"
+            examples:
+              dark:
+                value:
+                  theme: "dark"
+              light:
+                value:
+                  theme: "light"
+      responses:
+        "200":
+          description: Theme updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ThemeResponse"
+              example:
+                theme: "dark"
+        "422":
+          description: Invalid theme value
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+              example:
+                detail:
+                  - loc: ["body", "theme"]
+                    msg: "value must be 'dark' or 'light'"
+                    type: "enum"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  REWARD IMAGE (Project Customization)
+  # ═══════════════════════════════════════════════════════════════
+  /api/projects/{pid}/reward-image:
+    put:
+      summary: Upload a custom reward image for a project
+      description: |
+        Accepts a PNG or JPEG image (max 2 MB) to use as the dream reward
+        visual. The image is stored as a base64 data URI. Overwrites any
+        previously uploaded image.
+      operationId: setRewardImage
+      tags: [Projects]
+      parameters:
+        - name: pid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [image]
+              properties:
+                image:
+                  type: string
+                  format: binary
+                  description: PNG or JPEG image, max 2 MB
+      responses:
+        "200":
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RewardImageResponse"
+              example:
+                image_url: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        "400":
+          description: Invalid or unsupported image
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  detail:
+                    type: string
+              examples:
+                unsupported_format:
+                  value:
+                    detail: "Unsupported image format. Only PNG and JPEG are accepted."
+                too_large:
+                  value:
+                    detail: "Image too large. Maximum size is 2 MB."
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  CHECKIN (MODIFIED — Phase 2 additions)
+  # ═══════════════════════════════════════════════════════════════
+  /api/tasks/{tid}/checkin:
+    post:
+      summary: Complete a task (doing → done) — Phase 2 enhanced
+      description: |
+        Same behavior as v1.0 with two additions:
+        - `easter_egg`: randomly triggered bonus (20% base probability),
+          scaled by user streak and task difficulty.
+        - `achievement_unlocked`: returned when the checkin causes an
+          achievement to unlock. Null when no new achievement is earned.
+
+        Both fields are always present in the response; they are null when
+        not triggered. This is a backwards-compatible extension — existing
+        clients can ignore the new fields.
+      operationId: checkinTaskV2
+      tags: [Tasks]
+      parameters:
+        - name: tid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Check-in successful with easter egg and achievement info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckinResponseV2"
+              examples:
+                with_easter_egg:
+                  summary: Checkin that triggered a bonus XP easter egg
+                  value:
+                    id: "T001"
+                    status: "done"
+                    previous_status: "doing"
+                    completed_at: "2026-06-08T15:00:00Z"
+                    xp_earned: 20
+                    dream_value_earned: 2
+                    new_total_xp: 370
+                    new_level: 4
+                    xp_to_next_level: 30
+                    streak: 7
+                    easter_egg:
+                      triggered: true
+                      type: "bonus_xp"
+                      message: "运气不错！额外获得 10 XP！"
+                      bonus_xp: 10
+                    achievement_unlocked:
+                      id: "ACH_TASKS_10"
+                      name: "始知学海"
+                      xp_bonus: 20
+                without_easter_egg:
+                  summary: Plain checkin with no easter egg
+                  value:
+                    id: "T002"
+                    status: "done"
+                    previous_status: "doing"
+                    completed_at: "2026-06-08T16:00:00Z"
+                    xp_earned: 30
+                    dream_value_earned: 3
+                    new_total_xp: 400
+                    new_level: 4
+                    xp_to_next_level: 50
+                    streak: 7
+                    easter_egg: null
+                    achievement_unlocked: null
+                with_achievement:
+                  summary: Checkin that unlocked an achievement (no easter egg)
+                  value:
+                    id: "T003"
+                    status: "done"
+                    previous_status: "doing"
+                    completed_at: "2026-06-08T17:00:00Z"
+                    xp_earned: 50
+                    dream_value_earned: 5
+                    new_total_xp: 450
+                    new_level: 5
+                    xp_to_next_level: 100
+                    streak: 7
+                    easter_egg: null
+                    achievement_unlocked:
+                      id: "ACH_LEVEL_5"
+                      name: "小有所成"
+                      xp_bonus: 50
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "409":
+          description: Task is not in 'doing' status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidTransitionError"
+
+# ═══════════════════════════════════════════════════════════════
+#  COMPONENTS / SCHEMAS
+# ═══════════════════════════════════════════════════════════════
+components:
+  schemas:
+    # ──────────────────────────────────────────────
+    #  Heatmap
+    # ──────────────────────────────────────────────
+    HeatmapCell:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date in YYYY-MM-DD
+        count:
+          type: integer
+          minimum: 0
+          description: Number of checkins on this day
+        xp:
+          type: integer
+          minimum: 0
+          description: Total XP earned on this day
+
+    HeatmapStats:
+      type: object
+      properties:
+        total_days_active:
+          type: integer
+          minimum: 0
+          description: Number of distinct days with at least one checkin
+        longest_streak:
+          type: integer
+          minimum: 0
+          description: Longest consecutive checkin streak ever
+        current_streak:
+          type: integer
+          minimum: 0
+          description: Current consecutive checkin streak (0 if missed today)
+        average_xp_per_day:
+          type: number
+          format: float
+          minimum: 0
+          description: Average XP across all active days
+        total_checkins:
+          type: integer
+          minimum: 0
+          description: Total number of checkins
+        best_day:
+          type: object
+          nullable: true
+          properties:
+            date:
+              type: string
+              format: date
+            xp:
+              type: integer
+
+    HeatmapResponse:
+      type: object
+      properties:
+        heatmap:
+          type: array
+          items:
+            $ref: "#/components/schemas/HeatmapCell"
+          description: One entry per day in the requested range, ordered by date descending
+        stats:
+          $ref: "#/components/schemas/HeatmapStats"
+
+    # ──────────────────────────────────────────────
+    #  DAG
+    # ──────────────────────────────────────────────
+    DagNode:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Task UUID (not DSL id)
+        title:
+          type: string
+        type:
+          type: string
+          enum: [theory, practice, output]
+        status:
+          type: string
+          enum: [pending, doing, done]
+        xp:
+          type: integer
+        stage_id:
+          type: string
+          format: uuid
+        stage_title:
+          type: string
+        sort_order:
+          type: integer
+
+    DagEdge:
+      type: object
+      properties:
+        from:
+          type: string
+          description: Task UUID of the dependency source
+        to:
+          type: string
+          description: Task UUID of the dependent task
+
+    DagStage:
+      type: object
+      properties:
+        title:
+          type: string
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        task_count:
+          type: integer
+        done_count:
+          type: integer
+
+    DagResponse:
+      type: object
+      properties:
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/DagNode"
+          description: All tasks in the project, topologically sorted
+        edges:
+          type: array
+          items:
+            $ref: "#/components/schemas/DagEdge"
+          description: Dependency edges between tasks
+        stages:
+          type: array
+          items:
+            $ref: "#/components/schemas/DagStage"
+          description: Stage summaries ordered by sort_order
+
+    # ──────────────────────────────────────────────
+    #  Stage Detail
+    # ──────────────────────────────────────────────
+    StageTask:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        type:
+          type: string
+          enum: [theory, practice, output]
+        status:
+          type: string
+          enum: [pending, doing, done]
+        xp:
+          type: integer
+        sort_order:
+          type: integer
+        blocked:
+          type: boolean
+          description: True if this task has unmet dependencies
+
+    StageDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        sort_order:
+          type: integer
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        task_count:
+          type: integer
+        done_count:
+          type: integer
+        tasks:
+          type: array
+          items:
+            $ref: "#/components/schemas/StageTask"
+        next_stage_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID of the next stage, null if this is the last stage
+        next_stage_title:
+          type: string
+          nullable: true
+        prev_stage_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: ID of the previous stage, null if this is the first stage
+        prev_stage_title:
+          type: string
+          nullable: true
+
+    # ──────────────────────────────────────────────
+    #  Achievements
+    # ──────────────────────────────────────────────
+    Achievement:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique achievement identifier (e.g. "ACH_FIRST_CHECKIN")
+        name:
+          type: string
+          description: Human-readable achievement name in Chinese
+        description:
+          type: string
+          description: What the user must do to earn it
+        icon:
+          type: string
+          enum: [star, fire, trophy, book, check-circle]
+          description: Icon name for frontend rendering
+        earned_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: Timestamp when earned, null if not yet unlocked
+        xp_bonus:
+          type: integer
+          minimum: 0
+          nullable: true
+          description: XP awarded on unlock, null if not yet earned
+
+    AchievementsResponse:
+      type: object
+      properties:
+        achievements:
+          type: array
+          items:
+            $ref: "#/components/schemas/Achievement"
+          description: All achievements — earned first (by earned_at desc), then unearned
+        total_earned:
+          type: integer
+          description: Number of achievements the user has unlocked
+        total_available:
+          type: integer
+          description: Total number of achievements in the system
+
+    # ──────────────────────────────────────────────
+    #  Theme
+    # ──────────────────────────────────────────────
+    SetThemeRequest:
+      type: object
+      required: [theme]
+      properties:
+        theme:
+          type: string
+          enum: [dark, light]
+          description: UI color theme preference
+
+    ThemeResponse:
+      type: object
+      properties:
+        theme:
+          type: string
+          enum: [dark, light]
+
+    # ──────────────────────────────────────────────
+    #  Reward Image
+    # ──────────────────────────────────────────────
+    RewardImageResponse:
+      type: object
+      properties:
+        image_url:
+          type: string
+          format: uri
+          description: Base64-encoded data URI of the uploaded image
+
+    # ──────────────────────────────────────────────
+    #  Checkin V2 (extends v1 CheckinResponse)
+    # ──────────────────────────────────────────────
+    EasterEgg:
+      type: object
+      properties:
+        triggered:
+          type: boolean
+          enum: [true]
+        type:
+          type: string
+          enum: [bonus_xp, double_xp, streak_freeze]
+          description: |
+            - bonus_xp: flat extra XP (e.g. +10)
+            - double_xp: the task's base XP is doubled
+            - streak_freeze: a missed day won't break the streak
+        message:
+          type: string
+          description: Display message for the user
+        bonus_xp:
+          type: integer
+          description: |
+            Extra XP earned. Present for bonus_xp and double_xp types.
+            Null for streak_freeze.
+          nullable: true
+
+    AchievementUnlocked:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Achievement identifier
+        name:
+          type: string
+          description: Achievement display name
+        xp_bonus:
+          type: integer
+          description: XP awarded for unlocking this achievement
+
+    CheckinResponseV2:
+      allOf:
+        - $ref: "#/components/schemas/_CheckinBaseFields"
+        - type: object
+          properties:
+            easter_egg:
+              oneOf:
+                - $ref: "#/components/schemas/EasterEgg"
+                - type: "null"
+              description: Easter egg triggered by this checkin, or null
+            achievement_unlocked:
+              oneOf:
+                - $ref: "#/components/schemas/AchievementUnlocked"
+                - type: "null"
+              description: Achievement unlocked by this checkin, or null
+
+    _CheckinBaseFields:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [done]
+        previous_status:
+          type: string
+          enum: [doing]
+        completed_at:
+          type: string
+          format: date-time
+        xp_earned:
+          type: integer
+          description: Base XP from the task (before easter egg bonus)
+        dream_value_earned:
+          type: integer
+        new_total_xp:
+          type: integer
+          description: Total XP after this checkin (includes easter egg and achievement bonus)
+        new_level:
+          type: integer
+        xp_to_next_level:
+          type: integer
+        streak:
+          type: integer
+          description: Current streak count after this checkin
+
+    # ──────────────────────────────────────────────
+    #  Shared Error Schemas (consistent with v1.0)
+    # ──────────────────────────────────────────────
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
+
+    NotFoundError:
+      type: object
+      properties:
+        detail:
+          type: string
+      example:
+        detail: "Not found"
+
+    InvalidTransitionError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [INVALID_TRANSITION]
+        message:
+          type: string
+        current_status:
+          type: string
+        required_status:
+          type: string
+
+# ═══════════════════════════════════════════════════════════════
+#  EASTER EGG SYSTEM (Behavioral Notes)
+# ═══════════════════════════════════════════════════════════════
+# These are implementation notes, not part of the OpenAPI contract.
+# Included here for reference since they drive API behavior.
+#
+# Easter egg trigger probability:
+#   base_probability = 0.20
+#   streak_bonus = min(streak * 0.02, 0.30)       # +2% per streak day, cap +30%
+#   final_probability = clamp(base_probability + streak_bonus, 0.05, 0.50)
+#
+# Easter egg types and distribution:
+#   bonus_xp        — 70% chance when triggered — flat +10 to +50 XP (scaled by level)
+#   double_xp       — 25% chance when triggered — XP for this task ×2
+#   streak_freeze   —  5% chance when triggered — next missed day won't break streak
+#
+# Achievement evaluation:
+#   After every checkin, evaluate all unearned achievements:
+#   - ACH_FIRST_CHECKIN: total_checkins == 1
+#   - ACH_STREAK_3: streak == 3
+#   - ACH_STREAK_7: streak == 7
+#   - ACH_STREAK_30: streak == 30
+#   - ACH_LEVEL_5: level >= 5
+#   - ACH_LEVEL_10: level >= 10
+#   - ACH_TASKS_10: total_tasks_completed >= 10
+#   - ACH_TASKS_50: total_tasks_completed >= 50
+#   - ACH_TASKS_100: total_tasks_completed >= 100
+#   - ACH_ALL_TYPES: has completed >=1 task of each type (theory, practice, output)
+#
+#   Only the FIRST newly-unlocked achievement is included in the response.
+#   If multiple achievements unlock, they are evaluated in priority order
+#   as listed above; subsequent unlocks appear in future checkin responses.

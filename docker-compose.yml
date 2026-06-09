@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  backend:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - sqlite_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:///./data/learning_os.db
+      - ENVIRONMENT=development
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:

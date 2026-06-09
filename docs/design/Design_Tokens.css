@@ -1,0 +1,255 @@
+/* ============================================
+   Learning OS — Design Tokens v1.0
+   ============================================ */
+
+:root {
+  /* --------------------------------------------
+     Color Tokens
+     -------------------------------------------- */
+
+  /* Background */
+  --color-bg-dark:        #101214;
+  --color-bg-card-dark:   #1A1D22;
+  --color-bg-light:       #F8F9FB;
+  --color-bg-card-light:  #FFFFFF;
+  --color-bg-overlay:     rgba(0, 0, 0, 0.50);
+  --color-bg-toast:       rgba(0, 0, 0, 0.85);
+
+  /* Accent — Gold (梦想 / 成就 / 高亮) */
+  --color-gold-300:       #F5D56B;
+  --color-gold-400:       #E6B93D;  /* primary gold */
+  --color-gold-500:       #C99A2B;
+  --color-gold-gradient:  linear-gradient(135deg, #E6B93D 0%, #F5D56B 100%);
+
+  /* Accent — Blue (成长 / 学习 / 链接) */
+  --color-blue-300:       #7AB8FF;
+  --color-blue-400:       #4A9EFF;  /* primary blue */
+  --color-blue-500:       #2E7ED6;
+
+  /* Accent — Green (完成 / 成功 / 打卡) */
+  --color-green-300:      #5CDB7A;
+  --color-green-400:      #22C55E;  /* primary green */
+  --color-green-500:      #169C45;
+
+  /* Accent — Purple (激励 / AI / 特殊) */
+  --color-purple-300:     #B794F4;
+  --color-purple-400:     #8B5CF6;  /* primary purple */
+  --color-purple-500:     #6D3FD6;
+
+  /* Accent — Red (危险 / 删除 / 退出) */
+  --color-red-300:        #F87171;
+  --color-red-400:        #EF4444;  /* primary red */
+  --color-red-500:        #DC2626;
+
+  /* Neutral */
+  --color-white:          #FFFFFF;
+  --color-gray-100:       #F1F3F5;
+  --color-gray-200:       #E2E6EA;
+  --color-gray-300:       #C4CBD3;
+  --color-gray-400:       #8F99A3;
+  --color-gray-500:       #636E7A;
+  --color-gray-600:       #444A54;
+  --color-gray-700:       #2D3239;
+  --color-gray-800:       #1A1D22;
+  --color-gray-900:       #101214;
+
+  /* Text */
+  --color-text-primary:   var(--color-gray-900);
+  --color-text-secondary: var(--color-gray-500);
+  --color-text-muted:     var(--color-gray-400);
+  --color-text-inverse:   var(--color-white);
+  --color-text-link:      var(--color-blue-400);
+
+  /* Semantic */
+  --color-success:        var(--color-green-400);
+  --color-warning:        var(--color-gold-400);
+  --color-error:          var(--color-red-400);
+  --color-info:           var(--color-blue-400);
+
+  /* Gradient Backgrounds */
+  --gradient-encouragement: linear-gradient(135deg, #1A1D22 0%, #2D2638 100%);
+  --gradient-level-card:    linear-gradient(135deg, #1A1D22 0%, #1E2A3A 100%);
+
+  /* --------------------------------------------
+     Spacing Scale
+     -------------------------------------------- */
+  --space-xxs:   4px;
+  --space-xs:    8px;
+  --space-sm:    12px;
+  --space-md:    16px;
+  --space-lg:    20px;
+  --space-xl:    24px;
+  --space-2xl:   32px;
+  --space-3xl:   48px;
+  --space-4xl:   64px;
+
+  /* Page padding */
+  --page-padding-h:  var(--space-md);
+  --page-padding-top: var(--space-lg);
+
+  /* Section gap */
+  --section-gap:    var(--space-xl);
+
+  /* --------------------------------------------
+     Font Sizes
+     -------------------------------------------- */
+  --font-xs:    12px;
+  --font-sm:    14px;
+  --font-md:    16px;
+  --font-lg:    18px;
+  --font-xl:    20px;
+  --font-2xl:   24px;
+  --font-3xl:   32px;
+
+  /* Line Heights */
+  --leading-tight:   1.25;
+  --leading-normal:  1.5;
+  --leading-relaxed: 1.75;
+
+  /* Font Weights */
+  --weight-normal: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* Font Families */
+  --font-sans:  -apple-system, BlinkMacSystemFont, "PingFang SC",
+                "Helvetica Neue", "Microsoft YaHei", sans-serif;
+  --font-mono:  "SF Mono", "Fira Code", "Cascadia Code", "Menlo", monospace;
+
+  /* --------------------------------------------
+     Border Radius
+     -------------------------------------------- */
+  --radius-xs:    4px;
+  --radius-sm:    8px;
+  --radius-md:    12px;
+  --radius-lg:    16px;
+  --radius-full:  9999px;
+
+  /* --------------------------------------------
+     Shadow Tokens
+     -------------------------------------------- */
+  /* Card — subtle elevation */
+  --shadow-card:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.06);
+
+  /* Modal — higher elevation with spread */
+  --shadow-modal:
+    0 8px 32px rgba(0, 0, 0, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.12);
+
+  /* Button — interactive press */
+  --shadow-button:
+    0 2px 8px rgba(230, 185, 61, 0.3);
+
+  /* Button hover (gold) */
+  --shadow-button-hover:
+    0 4px 16px rgba(230, 185, 61, 0.4);
+
+  /* Float — FAB / important actions */
+  --shadow-float:
+    0 4px 16px rgba(0, 0, 0, 0.15);
+
+  /* --------------------------------------------
+     Animation Duration Tokens
+     -------------------------------------------- */
+  --anim-duration-fast:        150ms;
+  --anim-duration-normal:      300ms;
+  --anim-duration-slow:        500ms;
+  --anim-duration-celebration: 2000ms;
+
+  /* Easing Curves */
+  --anim-ease-out:
+    cubic-bezier(0, 0, 0.2, 1);
+  --anim-ease-in-out:
+    cubic-bezier(0.4, 0, 0.2, 1);
+  --anim-ease-spring:
+    cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* --------------------------------------------
+     Z-Index Scale
+     -------------------------------------------- */
+  --z-base:            1;
+  --z-dropdown:        100;
+  --z-sticky:          200;
+  --z-tab-bar:         300;
+  --z-fab:             400;
+  --z-overlay:         500;
+  --z-modal:           600;
+  --z-toast:           700;
+  --z-animation:       800;   /* check-in celebration overlay */
+  --z-tooltip:         900;
+
+  /* --------------------------------------------
+     Component-Specific Tokens
+     -------------------------------------------- */
+
+  /* Tab Bar */
+  --tab-bar-height:         56px;
+  --tab-bar-icon-size:      24px;
+  --tab-bar-active-font:    var(--font-xs);
+  --tab-bar-inactive-font:  var(--font-xs);
+
+  /* Navigation Header */
+  --nav-header-height:      44px;
+
+  /* Button Heights */
+  --btn-height-sm:    32px;
+  --btn-height-md:    44px;
+  --btn-height-lg:    52px;
+
+  /* Progress Bar */
+  --progress-height-sm:     4px;
+  --progress-height-md:     8px;
+  --progress-height-lg:     16px;
+
+  /* Avatar */
+  --avatar-size-sm:   40px;
+  --avatar-size-md:   64px;
+  --avatar-size-lg:   80px;
+
+  /* Icon */
+  --icon-size-sm:     16px;
+  --icon-size-md:     20px;
+  --icon-size-lg:     24px;
+
+  /* Stage Node */
+  --stage-node-size:        44px;
+  --stage-line-width:        2px;
+  --stage-line-height:      32px;
+
+  /* Reward Image */
+  --reward-image-size:     200px;
+
+  /* Check-in Animation */
+  --particle-size:           6px;
+  --particle-count:          10;
+  --xp-text-size:           24px;
+  --dream-text-size:        18px;
+  --particle-color:         #E6B93D;
+  --particle-burst-distance-min: 40px;
+  --particle-burst-distance-max: 120px;
+
+  /* Card */
+  --card-padding:           var(--space-md);
+  --card-radius:            var(--radius-lg);
+}
+
+/* ============================================
+   Dark Theme Overrides (applied via [data-theme="dark"])
+   ============================================ */
+
+[data-theme="dark"] {
+  --color-text-primary:   var(--color-white);
+  --color-text-secondary: var(--color-gray-300);
+  --color-text-muted:     var(--color-gray-400);
+
+  --shadow-card:
+    0 1px 3px rgba(0, 0, 0, 0.3),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+
+  --shadow-modal:
+    0 8px 32px rgba(0, 0, 0, 0.4),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}

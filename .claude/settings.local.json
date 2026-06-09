@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Edit(*)",
+      "Write(*)",
+      "Read(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "TaskCreate(*)",
+      "TaskUpdate(*)",
+      "TaskGet(*)",
+      "TaskList(*)",
+      "Agent(*)",
+      "NotebookEdit(*)",
+      "mcp__ide__getDiagnostics(*)",
+      "mcp__ide__executeCode(*)",
+      "Skill(*)",
+      "TeamCreate(*)",
+      "TeamDelete(*)",
+      "SendMessage(*)",
+      "CronCreate(*)",
+      "CronDelete(*)",
+      "CronList(*)",
+      "ScheduleWakeup(*)",
+      "Workflow(*)",
+      "EnterPlanMode(*)",
+      "ExitPlanMode(*)",
+      "EnterWorktree(*)",
+      "ExitWorktree(*)"
+    ]
+  }
+}

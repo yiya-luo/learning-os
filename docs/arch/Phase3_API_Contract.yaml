@@ -1,0 +1,1124 @@
+openapi: "3.0.3"
+info:
+  title: Learning OS API — Phase 3 Enhancements
+  description: |
+    New API endpoints for Phase 3: AI encouragement engine, user analytics,
+    milestones, and event timeline.
+
+    These endpoints extend the v1.0 and v2.0 contracts without breaking changes.
+    All v1.0 and v2.0 paths continue to work as specified.
+  version: "3.0.0"
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  # ═══════════════════════════════════════════════════════════════
+  #  ENCOURAGEMENT ENGINE
+  # ═══════════════════════════════════════════════════════════════
+  /api/encouragement/trigger:
+    post:
+      summary: Trigger an AI encouragement message based on user context
+      description: |
+        The server automatically gathers user and project state to determine
+        which encouragement type to return. Only `project_id` and
+        `trigger_event` are required — the backend pulls streak, progress,
+        and task data from the database.
+
+        Priority order (first match wins):
+          1. 2% random chance → type "easter_egg"
+          2. Dream progress threshold (25/50/75/90%) → type "reward"
+          3. Streak milestone (7/15/30 days) → type "future"
+          4. Stage completion → type "future"
+          5. Project progress threshold (25/50/75%) → type "retrospective"
+          6. Streak divisible by 7 (and >= 7) → type "retrospective"
+          7. Default → type "growth"
+      operationId: triggerEncouragement
+      tags: [Encouragement]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EncouragementRequest"
+            examples:
+              checkin:
+                summary: Triggered after a task checkin
+                value:
+                  project_id: "a1b2c3d4"
+                  trigger_event: "checkin"
+                  task_id: "t1"
+              stage_complete:
+                summary: Triggered when a stage is completed
+                value:
+                  project_id: "a1b2c3d4"
+                  trigger_event: "stage_complete"
+              streak_milestone:
+                summary: Triggered on streak milestones
+                value:
+                  project_id: "a1b2c3d4"
+                  trigger_event: "streak_milestone"
+              dream_milestone:
+                summary: Triggered on dream-reward progress
+                value:
+                  project_id: "a1b2c3d4"
+                  trigger_event: "dream_milestone"
+      responses:
+        "200":
+          description: Encouragement message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EncouragementResponse"
+              examples:
+                growth:
+                  summary: Default growth message
+                  value:
+                    type: "growth"
+                    icon: "🌱"
+                    color: "#3B82F6"
+                    message: "今天你又进步了一点。7天前，你还没开始这个项目。"
+                    bonus: null
+                reward:
+                  summary: Dream progress milestone
+                  value:
+                    type: "reward"
+                    icon: "🎁"
+                    color: "#F59E0B"
+                    message: "你已经完成了梦想奖励的 50%！键盘就在前方。"
+                    bonus: null
+                future:
+                  summary: Streak or stage milestone
+                  value:
+                    type: "future"
+                    icon: "🔮"
+                    color: "#8B5CF6"
+                    message: "你已经坚持了 30 天。再过 70 天，你就是百夫长了。"
+                    bonus: null
+                retrospective:
+                  summary: Project progress or weekly streak
+                  value:
+                    type: "retrospective"
+                    icon: "📊"
+                    color: "#10B981"
+                    message: "项目已完成 50%。回头看看，你已经完成了 6 个任务。"
+                    bonus: null
+                easter_egg:
+                  summary: Rare random bonus
+                  value:
+                    type: "easter_egg"
+                    icon: "✨"
+                    color: "#EC4899"
+                    message: "🌟 罕见的四叶草！你不仅完成了任务，还触发了隐藏奖励。"
+                    bonus:
+                      xp: 10
+                      dream_multiplier: 1.1
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  USER ANALYTICS
+  # ═══════════════════════════════════════════════════════════════
+  /api/users/me/analytics:
+    get:
+      summary: Get detailed analytics for the current user
+      description: |
+        Returns period-over-period comparison, daily trend, task type distribution,
+        stage progress breakdown, radar scores, and lifetime summary.
+
+        Period boundaries:
+        - `week`: current week (Mon-Sun) vs previous week
+        - `month`: current calendar month vs previous calendar month
+        - `all`: all-time (previous period is the first half vs second half)
+      operationId: getUserAnalytics
+      tags: [Progress]
+      parameters:
+        - name: period
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [week, month, all]
+            default: "week"
+          description: Comparison period
+      responses:
+        "200":
+          description: Full analytics response
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalyticsResponse"
+              example:
+                period: "week"
+                current:
+                  tasks_completed: 12
+                  xp_earned: 285
+                  average_xp_per_day: 40.7
+                  most_productive_day: "星期三"
+                  streak_days: 7
+                  completion_rate: 0.85
+                previous:
+                  tasks_completed: 8
+                  xp_earned: 190
+                  average_xp_per_day: 27.1
+                  completion_rate: 0.65
+                changes:
+                  tasks_completed_pct: 50.0
+                  xp_earned_pct: 50.0
+                  completion_rate_pct: 30.8
+                trend:
+                  - date: "2026-06-01"
+                    tasks: 2
+                    xp: 45
+                  - date: "2026-06-02"
+                    tasks: 3
+                    xp: 70
+                  - date: "2026-06-03"
+                    tasks: 1
+                    xp: 20
+                  - date: "2026-06-04"
+                    tasks: 4
+                    xp: 100
+                  - date: "2026-06-05"
+                    tasks: 0
+                    xp: 0
+                  - date: "2026-06-06"
+                    tasks: 2
+                    xp: 50
+                  - date: "2026-06-07"
+                    tasks: 0
+                    xp: 0
+                task_type_distribution:
+                  theory:
+                    count: 5
+                    percent: 41.7
+                  practice:
+                    count: 5
+                    percent: 41.7
+                  output:
+                    count: 2
+                    percent: 16.7
+                stage_progress:
+                  - stage_title: "基础准备"
+                    done: 4
+                    doing: 0
+                    pending: 0
+                    total: 4
+                    percent: 100.0
+                  - stage_title: "控制流"
+                    done: 2
+                    doing: 1
+                    pending: 0
+                    total: 3
+                    percent: 66.7
+                radar:
+                  completion: 85
+                  efficiency: 72
+                  streak: 65
+                  quality: 90
+                  speed: 55
+                summary:
+                  total_tasks_completed: 120
+                  total_xp: 2850
+                  total_days_active: 45
+                  longest_streak: 30
+                  current_streak: 7
+                  favorite_type: "practice"
+                  projects_completed: 0
+                  stages_completed: 3
+                  first_checkin_date: "2026-04-25"
+        "422":
+          description: Invalid period parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+  # ═══════════════════════════════════════════════════════════════
+  #  MILESTONES
+  # ═══════════════════════════════════════════════════════════════
+  /api/users/me/milestones:
+    get:
+      summary: Get all milestones with achievement status
+      description: |
+        Returns the 15 built-in milestones. Each has an `achieved` flag,
+        an optional `achieved_at` timestamp, and the XP bonus on unlock.
+
+        Milestones are a meta-layer above daily achievements — they track
+        long-term progress markers like "first checkin", "30-day streak",
+        "completed first project", etc.
+      operationId: getUserMilestones
+      tags: [Progress]
+      responses:
+        "200":
+          description: Milestone list with counts
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MilestonesResponse"
+              example:
+                milestones:
+                  - id: "M001"
+                    name: "首次启程"
+                    description: "完成第一次打卡"
+                    icon: "🚀"
+                    achieved: true
+                    achieved_at: "2026-04-25"
+                    xp_bonus: 25
+                  - id: "M002"
+                    name: "周不懈怠"
+                    description: "连续打卡 7 天"
+                    icon: "🔥"
+                    achieved: true
+                    achieved_at: "2026-05-02"
+                    xp_bonus: 30
+                  - id: "M003"
+                    name: "月度坚守"
+                    description: "连续打卡 30 天"
+                    icon: "🏆"
+                    achieved: true
+                    achieved_at: "2026-05-25"
+                    xp_bonus: 50
+                  - id: "M004"
+                    name: "百日英雄"
+                    description: "连续打卡 100 天"
+                    icon: "👑"
+                    achieved: false
+                    achieved_at: null
+                    xp_bonus: 200
+                  - id: "M005"
+                    name: "梦想起航"
+                    description: "梦想奖励进度达到 25%"
+                    icon: "🎯"
+                    achieved: true
+                    achieved_at: "2026-05-10"
+                    xp_bonus: 15
+                  - id: "M006"
+                    name: "梦想半程"
+                    description: "梦想奖励进度达到 50%"
+                    icon: "🎯"
+                    achieved: true
+                    achieved_at: "2026-05-28"
+                    xp_bonus: 25
+                  - id: "M007"
+                    name: "梦想冲刺"
+                    description: "梦想奖励进度达到 75%"
+                    icon: "🎯"
+                    achieved: false
+                    achieved_at: null
+                    xp_bonus: 40
+                  - id: "M008"
+                    name: "梦想完成"
+                    description: "梦想奖励进度达到 100%"
+                    icon: "🎉"
+                    achieved: false
+                    achieved_at: null
+                    xp_bonus: 100
+                  - id: "M009"
+                    name: "初出茅庐"
+                    description: "完成 10 个任务"
+                    icon: "📚"
+                    achieved: true
+                    achieved_at: "2026-05-05"
+                    xp_bonus: 20
+                  - id: "M010"
+                    name: "学海无涯"
+                    description: "完成 50 个任务"
+                    icon: "📖"
+                    achieved: true
+                    achieved_at: "2026-05-30"
+                    xp_bonus: 50
+                  - id: "M011"
+                    name: "水滴石穿"
+                    description: "完成 100 个任务"
+                    icon: "💎"
+                    achieved: false
+                    achieved_at: null
+                    xp_bonus: 100
+                  - id: "M012"
+                    name: "阶段推进"
+                    description: "完成第一个 Stage"
+                    icon: "⭐"
+                    achieved: true
+                    achieved_at: "2026-05-03"
+                    xp_bonus: 30
+                  - id: "M013"
+                    name: "项目完成"
+                    description: "完成第一个项目"
+                    icon: "🏁"
+                    achieved: false
+                    achieved_at: null
+                    xp_bonus: 150
+                  - id: "M014"
+                    name: "全面发展"
+                    description: "完成过三种类型的任务"
+                    icon: "🧩"
+                    achieved: true
+                    achieved_at: "2026-05-01"
+                    xp_bonus: 25
+                  - id: "M015"
+                    name: "天选之人"
+                    description: "触发过隐藏 easter egg"
+                    icon: "🍀"
+                    achieved: false
+                    achieved_at: null
+                    xp_bonus: 50
+                achieved_count: 9
+                total_count: 15
+
+  # ═══════════════════════════════════════════════════════════════
+  #  EVENT TIMELINE
+  # ═══════════════════════════════════════════════════════════════
+  /api/users/me/timeline:
+    get:
+      summary: Get paginated event timeline for the current user
+      description: |
+        Returns a chronological feed of all user events: milestone unlocks,
+        achievement earns, task checkins, and stage completions. Filterable
+        by event type and pageable for infinite scroll.
+      operationId: getUserTimeline
+      tags: [Progress]
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+          description: Page number (1-based)
+        - name: page_size
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Number of events per page
+        - name: filter
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [all, milestone, achievement, checkin, stage]
+            default: "all"
+          description: Filter by event type
+      responses:
+        "200":
+          description: Paginated timeline events
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TimelineResponse"
+              example:
+                events:
+                  - type: "checkin"
+                    date: "2026-06-08"
+                    title: "完成: 下载AAPL历史数据"
+                    xp_earned: 30
+                    task_type: "practice"
+                  - type: "milestone"
+                    date: "2026-06-07"
+                    title: "月度坚守"
+                    description: "连续打卡30天"
+                    icon: "🏆"
+                    color: "#FFD700"
+                    xp_bonus: 50
+                  - type: "achievement"
+                    date: "2026-06-05"
+                    title: "阶段完成者"
+                    description: "完成Stage: 基础准备"
+                    icon: "⭐"
+                    color: "#8B5CF6"
+                    xp_bonus: 40
+                  - type: "stage"
+                    date: "2026-06-05"
+                    title: "完成阶段"
+                    description: "基础准备"
+                    stage_progress: 100.0
+                    tasks_completed: 4
+                  - type: "checkin"
+                    date: "2026-06-04"
+                    title: "完成: if-else 条件判断"
+                    xp_earned: 20
+                    task_type: "theory"
+                pagination:
+                  page: 1
+                  page_size: 20
+                  total: 87
+                  has_more: true
+        "422":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+# ═══════════════════════════════════════════════════════════════
+#  COMPONENTS / SCHEMAS
+# ═══════════════════════════════════════════════════════════════
+components:
+  schemas:
+    # ──────────────────────────────────────────────
+    #  Encouragement
+    # ──────────────────────────────────────────────
+    EncouragementRequest:
+      type: object
+      required: [project_id, trigger_event]
+      properties:
+        project_id:
+          type: string
+          description: Project UUID
+        trigger_event:
+          type: string
+          enum: [checkin, stage_complete, streak_milestone, dream_milestone]
+          description: |
+            The event that triggered the encouragement request.
+            - checkin: user just completed a task
+            - stage_complete: user just finished all tasks in a stage
+            - streak_milestone: user hit a streak threshold (7/15/30/100)
+            - dream_milestone: user hit a dream-progress threshold (25/50/75/100%)
+        task_id:
+          type: string
+          nullable: true
+          description: |
+            The task that triggered this (only meaningful for checkin events).
+            Null for stage_complete, streak_milestone, and dream_milestone.
+
+    EncouragementBonus:
+      type: object
+      properties:
+        xp:
+          type: integer
+          minimum: 0
+          description: Bonus XP awarded
+        dream_multiplier:
+          type: number
+          format: float
+          minimum: 1.0
+          description: Temporary multiplier on dream value (e.g. 1.1 = +10%)
+
+    EncouragementResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [growth, reward, future, retrospective, easter_egg]
+          description: |
+            The category of encouragement message.
+            - growth: daily encouragement, always safe to show
+            - reward: dream-progress milestone, celebrate the goal
+            - future: streak or stage milestone, forward-looking
+            - retrospective: project progress or weekly reflection
+            - easter_egg: rare random bonus (2% chance)
+        icon:
+          type: string
+          description: Emoji icon for the frontend card
+        color:
+          type: string
+          pattern: "^#[0-9A-Fa-f]{6}$"
+          description: Hex color for the card accent
+        message:
+          type: string
+          description: The AI-generated encouragement text (localized)
+        bonus:
+          $ref: "#/components/schemas/EncouragementBonus"
+          nullable: true
+          description: |
+            Bonus reward data. Only present for easter_egg type; null for all others.
+
+    # ──────────────────────────────────────────────
+    #  Analytics
+    # ──────────────────────────────────────────────
+    AnalyticsPeriodData:
+      type: object
+      properties:
+        tasks_completed:
+          type: integer
+          minimum: 0
+          description: Number of tasks completed in this period
+        xp_earned:
+          type: integer
+          minimum: 0
+          description: Total XP earned in this period
+        average_xp_per_day:
+          type: number
+          format: float
+          minimum: 0
+          description: Average XP per active day in this period
+        most_productive_day:
+          type: string
+          nullable: true
+          description: |
+            Day of week with most checkins (Chinese: 星期一-星期日).
+            Only present for `week` period. Null for `month` and `all`.
+        streak_days:
+          type: integer
+          minimum: 0
+          description: |
+            Number of checkin days in this period.
+            Only present for `week` and `month` periods. Not included in `all`.
+        completion_rate:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Ratio of days with at least one checkin vs total days in period
+
+    AnalyticsChanges:
+      type: object
+      properties:
+        tasks_completed_pct:
+          type: number
+          format: float
+          description: |
+            Percentage change in tasks completed (current vs previous).
+            Positive = improvement. Null if previous period had 0 tasks.
+        xp_earned_pct:
+          type: number
+          format: float
+          description: Percentage change in XP earned (current vs previous)
+        completion_rate_pct:
+          type: number
+          format: float
+          description: Percentage-point change in completion rate
+
+    TrendPoint:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date in YYYY-MM-DD
+        tasks:
+          type: integer
+          minimum: 0
+          description: Tasks completed on this date
+        xp:
+          type: integer
+          minimum: 0
+          description: XP earned on this date
+
+    TaskTypeDistribution:
+      type: object
+      properties:
+        count:
+          type: integer
+          minimum: 0
+        percent:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Percentage of total tasks (sum of all three ≈ 100)
+
+    TaskTypeBreakdown:
+      type: object
+      properties:
+        theory:
+          $ref: "#/components/schemas/TaskTypeDistribution"
+        practice:
+          $ref: "#/components/schemas/TaskTypeDistribution"
+        output:
+          $ref: "#/components/schemas/TaskTypeDistribution"
+
+    StageProgressItem:
+      type: object
+      properties:
+        stage_title:
+          type: string
+          description: Stage display name
+        done:
+          type: integer
+          minimum: 0
+          description: Tasks in 'done' status
+        doing:
+          type: integer
+          minimum: 0
+          description: Tasks in 'doing' status
+        pending:
+          type: integer
+          minimum: 0
+          description: Tasks in 'pending' status
+        total:
+          type: integer
+          minimum: 0
+          description: Total tasks in this stage
+        percent:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 100
+          description: Completion percentage (done / total * 100)
+
+    RadarScores:
+      type: object
+      properties:
+        completion:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: |
+            Completion rate score.
+            Formula: done_tasks / total_tasks * 100
+        efficiency:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: |
+            Efficiency score (capped at 100).
+            Formula: min(actual_checkins / days_since_start * 100, 100)
+        streak:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: |
+            Streak score.
+            Formula: current_streak / max(30, longest_streak) * 100
+        quality:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: |
+            Quality score.
+            Formula: tasks_with_check_field_completed / total_done * 100
+        speed:
+          type: integer
+          minimum: 0
+          maximum: 100
+          description: |
+            Speed score.
+            Formula: tasks_completed_before_estimate / total_done * 100
+
+    AnalyticsSummary:
+      type: object
+      properties:
+        total_tasks_completed:
+          type: integer
+          minimum: 0
+          description: Lifetime total of completed tasks
+        total_xp:
+          type: integer
+          minimum: 0
+          description: Lifetime total XP
+        total_days_active:
+          type: integer
+          minimum: 0
+          description: Distinct days with at least one checkin
+        longest_streak:
+          type: integer
+          minimum: 0
+          description: Longest consecutive checkin streak ever
+        current_streak:
+          type: integer
+          minimum: 0
+          description: Current consecutive checkin streak
+        favorite_type:
+          type: string
+          enum: [theory, practice, output]
+          description: Most frequently completed task type
+        projects_completed:
+          type: integer
+          minimum: 0
+          description: Number of projects with 100% progress
+        stages_completed:
+          type: integer
+          minimum: 0
+          description: Number of stages fully completed (all tasks done)
+        first_checkin_date:
+          type: string
+          format: date
+          nullable: true
+          description: Date of the very first checkin, null if never checked in
+
+    AnalyticsResponse:
+      type: object
+      properties:
+        period:
+          type: string
+          enum: [week, month, all]
+          description: The requested comparison period
+        current:
+          $ref: "#/components/schemas/AnalyticsPeriodData"
+          description: Current period metrics
+        previous:
+          $ref: "#/components/schemas/AnalyticsPeriodData"
+          description: Previous period metrics for comparison
+        changes:
+          $ref: "#/components/schemas/AnalyticsChanges"
+          description: Period-over-period percentage changes
+        trend:
+          type: array
+          items:
+            $ref: "#/components/schemas/TrendPoint"
+          description: Daily breakdown for the current period, ordered by date ascending
+        task_type_distribution:
+          $ref: "#/components/schemas/TaskTypeBreakdown"
+          description: Task-type breakdown for the current period
+        stage_progress:
+          type: array
+          items:
+            $ref: "#/components/schemas/StageProgressItem"
+          description: Per-stage progress across all projects, ordered by stage sort_order
+        radar:
+          $ref: "#/components/schemas/RadarScores"
+          description: Five-axis radar scores (0-100 each)
+        summary:
+          $ref: "#/components/schemas/AnalyticsSummary"
+          description: Lifetime summary stats (period-independent)
+
+    # ──────────────────────────────────────────────
+    #  Milestones
+    # ──────────────────────────────────────────────
+    Milestone:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique milestone identifier (e.g. "M001")
+        name:
+          type: string
+          description: Human-readable milestone name in Chinese
+        description:
+          type: string
+          description: What the user must accomplish to earn this milestone
+        icon:
+          type: string
+          description: Emoji icon for frontend rendering
+        achieved:
+          type: boolean
+          description: Whether the user has unlocked this milestone
+        achieved_at:
+          type: string
+          format: date
+          nullable: true
+          description: Date when achieved, null if not yet unlocked
+        xp_bonus:
+          type: integer
+          minimum: 0
+          description: XP awarded on unlock
+
+    MilestonesResponse:
+      type: object
+      properties:
+        milestones:
+          type: array
+          items:
+            $ref: "#/components/schemas/Milestone"
+          description: |
+            All 15 milestones in order: achieved first (by achieved_at desc),
+            then unachieved in ID order.
+        achieved_count:
+          type: integer
+          minimum: 0
+          maximum: 15
+          description: Number of milestones the user has achieved
+        total_count:
+          type: integer
+          enum: [15]
+          description: Total number of milestones in the system (always 15)
+
+    # ──────────────────────────────────────────────
+    #  Timeline
+    # ──────────────────────────────────────────────
+    TimelineEvent:
+      type: object
+      discriminator:
+        propertyName: type
+        mapping:
+          milestone: "#/components/schemas/TimelineMilestoneEvent"
+          achievement: "#/components/schemas/TimelineAchievementEvent"
+          checkin: "#/components/schemas/TimelineCheckinEvent"
+          stage: "#/components/schemas/TimelineStageEvent"
+      properties:
+        type:
+          type: string
+          enum: [milestone, achievement, checkin, stage]
+          description: Event type discriminator
+        date:
+          type: string
+          format: date
+          description: Date the event occurred
+        title:
+          type: string
+          description: Short display title
+
+    TimelineMilestoneEvent:
+      allOf:
+        - $ref: "#/components/schemas/_TimelineBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [milestone]
+            description:
+              type: string
+              description: Milestone description
+            icon:
+              type: string
+              description: Milestone emoji icon
+            color:
+              type: string
+              pattern: "^#[0-9A-Fa-f]{6}$"
+              description: Accent color for the timeline card
+            xp_bonus:
+              type: integer
+              minimum: 0
+              description: XP awarded for this milestone
+
+    TimelineAchievementEvent:
+      allOf:
+        - $ref: "#/components/schemas/_TimelineBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [achievement]
+            description:
+              type: string
+              description: "Achievement description (e.g. 完成Stage: 基础准备)"
+            icon:
+              type: string
+              description: Achievement emoji icon
+            color:
+              type: string
+              pattern: "^#[0-9A-Fa-f]{6}$"
+              description: Accent color
+            xp_bonus:
+              type: integer
+              minimum: 0
+              description: XP awarded for this achievement
+
+    TimelineCheckinEvent:
+      allOf:
+        - $ref: "#/components/schemas/_TimelineBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [checkin]
+            xp_earned:
+              type: integer
+              minimum: 0
+              description: XP earned from this checkin
+            task_type:
+              type: string
+              enum: [theory, practice, output]
+              description: Type of task that was checked in
+
+    TimelineStageEvent:
+      allOf:
+        - $ref: "#/components/schemas/_TimelineBase"
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [stage]
+            description:
+              type: string
+              description: Name of the completed stage
+            stage_progress:
+              type: number
+              format: float
+              minimum: 0
+              maximum: 100
+              description: Stage completion percentage (always 100.0 for stage-complete events)
+            tasks_completed:
+              type: integer
+              minimum: 0
+              description: Number of tasks completed in this stage
+
+    _TimelineBase:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [milestone, achievement, checkin, stage]
+        date:
+          type: string
+          format: date
+        title:
+          type: string
+
+    TimelinePagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          minimum: 1
+          description: Current page number
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Number of events per page
+        total:
+          type: integer
+          minimum: 0
+          description: Total number of events matching the filter
+        has_more:
+          type: boolean
+          description: True if there are more pages
+
+    TimelineResponse:
+      type: object
+      properties:
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/TimelineEvent"
+          description: Events in reverse chronological order (newest first)
+        pagination:
+          $ref: "#/components/schemas/TimelinePagination"
+
+    # ──────────────────────────────────────────────
+    #  Shared Error Schemas
+    # ──────────────────────────────────────────────
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
+
+    NotFoundError:
+      type: object
+      properties:
+        detail:
+          type: string
+      example:
+        detail: "Not found"
+
+# ═══════════════════════════════════════════════════════════════
+#  RADAR SCORE CALCULATION RULES
+# ═══════════════════════════════════════════════════════════════
+# These are implementation notes, not part of the OpenAPI contract.
+# Included here for reference since they drive API behavior.
+#
+# Each radar axis is scored 0-100. The formulas are:
+#
+# completion (完成率):
+#   completion = (done_tasks / total_tasks) * 100
+#   - done_tasks: count of tasks with status "done"
+#   - total_tasks: count of all tasks across all projects
+#   - Edge case: total_tasks == 0 → score = 0
+#
+# efficiency (效率):
+#   efficiency = min(actual_checkins / days_since_start * 100, 100)
+#   - actual_checkins: count of distinct days with at least one checkin
+#   - days_since_start: days between first_checkin_date and today
+#   - Capped at 100 (user cannot be more than 100% efficient)
+#   - Edge case: days_since_start == 0 → score = 0
+#
+# streak (连续打卡):
+#   streak = (current_streak / max(30, longest_streak)) * 100
+#   - Uses the larger of 30 or longest_streak as the denominator
+#   - This means a 30-day base-line; if longest > 30, normalizes against it
+#   - Edge case: current_streak == 0 → score = 0
+#
+# quality (质量):
+#   quality = (tasks_with_check_field_completed / total_done) * 100
+#   - tasks_with_check_field_completed: done tasks where `check` field is populated
+#     AND the task was completed with the check verification flag set
+#   - total_done: all tasks with status "done"
+#   - Rationale: tasks with explicit acceptance criteria represent higher quality output
+#   - Edge case: total_done == 0 → score = 0
+#
+# speed (速度):
+#   speed = (tasks_completed_before_estimate / total_done) * 100
+#   - tasks_completed_before_estimate: done tasks where actual_completion_time
+#     (completed_at - started_at) <= estimate (in minutes)
+#   - total_done: all tasks with status "done"
+#   - Edge case: total_done == 0 → score = 0
+#   - Edge case: task has no estimate → counted as "on time"
+
+# ═══════════════════════════════════════════════════════════════
+#  ENCOURAGEMENT TYPE SELECTION ALGORITHM
+# ═══════════════════════════════════════════════════════════════
+# The server evaluates conditions in this exact priority order.
+# The FIRST matching condition wins.
+#
+# 1. EASTER_EGG (2% flat chance):
+#    - Roll random 0-99; if result < 2, return type "easter_egg"
+#    - Bonus: randomly pick +5/+10/+15 XP and 1.0/1.1/1.2 dream_multiplier
+#    - This check runs BEFORE all others, so an easter egg can replace
+#      any other encouragement type
+#
+# 2. REWARD (dream progress milestones):
+#    - Check project dream_value progress %
+#    - Thresholds: 25%, 50%, 75%, 90% (not 100% — that's handled as project completion)
+#    - If the current progress just crossed a threshold (was below, now >= threshold)
+#      return type "reward"
+#
+# 3. FUTURE — streak milestones:
+#    - Streak exactly hits 7, 15, or 30 days
+#    - Must be checked AFTER the streak update in the current checkin
+#    - Returns type "future"
+#
+# 4. FUTURE — stage completion:
+#    - trigger_event == "stage_complete"
+#    - All tasks in a stage just transitioned to "done"
+#    - Returns type "future"
+#
+# 5. RETROSPECTIVE — project progress:
+#    - Project overall progress crosses 25%, 50%, or 75%
+#    - Returns type "retrospective"
+#
+# 6. RETROSPECTIVE — 7-day streak interval:
+#    - current_streak > 0 AND current_streak % 7 == 0
+#    - But only if streak < 100 (to avoid double-triggering with milestone)
+#    - Returns type "retrospective"
+#
+# 7. GROWTH (default):
+#    - Always falls through to "growth" if no other condition matched
+#    - Generates a general encouragement message
+#
+# Message generation:
+#   Each type has a pool of template messages. The server selects one
+#   based on context (user level, project title, numbers). Messages are
+#   localized to Chinese.
+
+# ═══════════════════════════════════════════════════════════════
+#  MILESTONE DEFINITIONS (15 total)
+# ═══════════════════════════════════════════════════════════════
+# M001 — 首次启程: first checkin ever
+# M002 — 周不懈怠: streak reaches 7
+# M003 — 月度坚守: streak reaches 30
+# M004 — 百日英雄: streak reaches 100
+# M005 — 梦想起航: dream progress reaches 25%
+# M006 — 梦想半程: dream progress reaches 50%
+# M007 — 梦想冲刺: dream progress reaches 75%
+# M008 — 梦想完成: dream progress reaches 100%
+# M009 — 初出茅庐: total completed tasks >= 10
+# M010 — 学海无涯: total completed tasks >= 50
+# M011 — 水滴石穿: total completed tasks >= 100
+# M012 — 阶段推进: first stage fully completed
+# M013 — 项目完成: first project fully completed (100% progress)
+# M014 — 全面发展: completed at least 1 theory + 1 practice + 1 output
+# M015 — 天选之人: triggered at least 1 easter egg
+#
+# Milestones are evaluated after every checkin. Unlike achievements
+# (which only fire once and return the first new one), milestones are
+# always returned as a full list with achieved/not-achieved flag.

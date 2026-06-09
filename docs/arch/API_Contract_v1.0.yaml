@@ -1,0 +1,985 @@
+openapi: "3.0.3"
+info:
+  title: Learning OS API
+  description: AI-independent learning execution system — REST API contract v1.0
+  version: "1.0.0"
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  # ──────────────────────────────────────────────
+  #  PROJECTS
+  # ──────────────────────────────────────────────
+  /api/projects:
+    post:
+      summary: Create a new project
+      operationId: createProject
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectRequest"
+            example:
+              title: "30-Day Python Challenge"
+              description: "从零开始掌握 Python 基础"
+              reward: "一台机械键盘"
+              reward_price: 5000
+              deadline: "2026-07-08"
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+              example:
+                id: "a1b2c3d4"
+                title: "30-Day Python Challenge"
+                description: "从零开始掌握 Python 基础"
+                reward: "一台机械键盘"
+                reward_price: 5000
+                deadline: "2026-07-08"
+                progress: 0
+                created_at: "2026-06-08T12:00:00Z"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+    get:
+      summary: List all projects
+      operationId: listProjects
+      tags: [Projects]
+      responses:
+        "200":
+          description: List of projects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  projects:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Project"
+              example:
+                projects:
+                  - id: "a1b2c3d4"
+                    title: "30-Day Python Challenge"
+                    description: "从零开始掌握 Python 基础"
+                    reward: "一台机械键盘"
+                    reward_price: 5000
+                    deadline: "2026-07-08"
+                    progress: 0.35
+                    created_at: "2026-06-08T12:00:00Z"
+
+  /api/projects/import:
+    post:
+      summary: Import project from Markdown DSL
+      description: |
+        Parse and import a Markdown DSL document that defines a complete learning project
+        with stages and tasks. Returns the created project with all its stages and tasks.
+      operationId: importProject
+      tags: [Projects]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImportRequest"
+            example:
+              markdown: |
+                # 30天 Python 入门
+                从零开始掌握 Python 基础，每天一小步。
+
+                ## 第一阶段：基础语法
+                掌握 Python 基本语法和数据类型。
+
+                ### T001 theory 20 变量与数据类型
+                学习 Python 的变量命名规则和基本数据类型（int, float, str, bool）。
+                > 阅读《Python编程：从入门到实践》第2章
+                * https://docs.python.org/3/tutorial/introduction.html
+
+                ### T002 practice 30 编写第一个计算器
+                使用 input() 接收用户输入，实现加减乘除功能。
+
+                ### T003 output 50 学习笔记
+                整理第一阶段的知识点，输出一篇结构化笔记。
+
+                ## 第二阶段：控制流
+                掌握条件判断和循环结构。
+
+                ### T004 theory 20 if-else 条件判断
+                学习布尔表达式和条件分支。
+
+                ### T005 practice 40 猜数字游戏
+                实现一个猜数字游戏，使用 while 循环。
+
+                ### T006 output 60 代码回顾
+                总结控制流学习心得，附代码示例。
+
+      responses:
+        "201":
+          description: Project imported successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImportResponse"
+              example:
+                project_id: "a1b2c3d4"
+                title: "30天 Python 入门"
+                stage_count: 2
+                task_count: 6
+        "400":
+          description: DSL parse or validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DslError"
+              examples:
+                parse_error:
+                  value:
+                    error: "PARSE_ERROR"
+                    line: 5
+                    message: "Invalid task line: expected '### T### type xp title'"
+                validation_error:
+                  value:
+                    error: "VALIDATION_ERROR"
+                    message: "Task T007 depends on T999 which does not exist"
+
+  /api/projects/{pid}:
+    get:
+      summary: Get project detail with stages
+      operationId: getProject
+      tags: [Projects]
+      parameters:
+        - name: pid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Project with stages and task summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectDetail"
+              example:
+                id: "a1b2c3d4"
+                title: "30-Day Python Challenge"
+                description: "从零开始掌握 Python 基础"
+                reward: "一台机械键盘"
+                reward_price: 5000
+                deadline: "2026-07-08"
+                progress: 0.35
+                created_at: "2026-06-08T12:00:00Z"
+                stages:
+                  - id: "s1"
+                    title: "第一阶段：基础语法"
+                    sort_order: 1
+                    progress: 0.6
+                    task_count: 3
+                    done_count: 2
+                  - id: "s2"
+                    title: "第二阶段：控制流"
+                    sort_order: 2
+                    progress: 0.0
+                    task_count: 3
+                    done_count: 0
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+  # ──────────────────────────────────────────────
+  #  TASKS
+  # ──────────────────────────────────────────────
+  /api/projects/{pid}/tasks:
+    get:
+      summary: List all tasks in a project
+      operationId: listTasks
+      tags: [Tasks]
+      parameters:
+        - name: pid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [pending, doing, done]
+      responses:
+        "200":
+          description: Task list grouped by stage
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TaskSummary"
+              example:
+                tasks:
+                  - id: "t1"
+                    stage_id: "s1"
+                    title: "变量与数据类型"
+                    type: "theory"
+                    xp: 20
+                    status: "done"
+                    sort_order: 1
+                  - id: "t2"
+                    stage_id: "s1"
+                    title: "编写第一个计算器"
+                    type: "practice"
+                    xp: 30
+                    status: "doing"
+                    sort_order: 2
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+  /api/projects/{pid}/tasks/today:
+    get:
+      summary: Get today's available tasks
+      description: |
+        Returns tasks that are actionable today: either 'pending' or 'doing' status,
+        with dependencies resolved. Tasks whose dependencies are not all 'done'
+        are marked as 'blocked'.
+      operationId: getTodayTasks
+      tags: [Tasks]
+      parameters:
+        - name: pid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Today's actionable tasks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  tasks:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/TodayTask"
+              example:
+                date: "2026-06-08"
+                tasks:
+                  - id: "t2"
+                    stage_id: "s1"
+                    stage_title: "第一阶段"
+                    title: "编写第一个计算器"
+                    type: "practice"
+                    xp: 20
+                    status: "doing"
+                    depends: []
+                    blocked: false
+                    check: "实现加减乘除四则运算"
+                  - id: "t3"
+                    stage_id: "s1"
+                    stage_title: "第一阶段"
+                    title: "学习笔记"
+                    type: "output"
+                    xp: 50
+                    status: "pending"
+                    depends: ["t2"]
+                    blocked: true
+                    check: "输出结构化笔记"
+
+  /api/tasks/{tid}:
+    get:
+      summary: Get task detail
+      operationId: getTask
+      tags: [Tasks]
+      parameters:
+        - name: tid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Full task detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskDetail"
+              example:
+                id: "t1"
+                stage_id: "s1"
+                stage_title: "第一阶段：基础语法"
+                project_id: "a1b2c3d4"
+                title: "变量与数据类型"
+                type: "theory"
+                xp: 20
+                estimate: 30
+                status: "pending"
+                depends: []
+                check: "能说出 Python 四种基本数据类型的区别"
+                resource: "https://docs.python.org/3/tutorial/introduction.html"
+                sort_order: 1
+                created_at: "2026-06-08T12:00:00Z"
+                completed_at: null
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+  /api/tasks/{tid}/start:
+    patch:
+      summary: Start a task (pending → doing)
+      description: |
+        Transitions a task from 'pending' to 'doing'. Fails with 409 if
+        the task has unmet dependencies or is not in 'pending' status.
+      operationId: startTask
+      tags: [Tasks]
+      parameters:
+        - name: tid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Task started successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TaskStatusResponse"
+              example:
+                id: "t1"
+                status: "doing"
+                previous_status: "pending"
+                started_at: "2026-06-08T14:30:00Z"
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "409":
+          description: Invalid state transition or dependency blocked
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/InvalidTransitionError"
+                  - $ref: "#/components/schemas/DependencyBlockedError"
+              examples:
+                invalid_state:
+                  value:
+                    error: "INVALID_TRANSITION"
+                    message: "Task is already in 'doing' status"
+                    current_status: "doing"
+                    required_status: "pending"
+                dependency_blocked:
+                  value:
+                    error: "DEPENDENCY_BLOCKED"
+                    message: "Cannot start task — dependencies not met"
+                    blocked_by: ["t1"]
+
+  /api/tasks/{tid}/checkin:
+    post:
+      summary: Complete a task (doing → done)
+      description: |
+        Marks a task as 'done', awards XP, and optionally progresses the
+        linked project's dream reward tracker.
+      operationId: checkinTask
+      tags: [Tasks]
+      parameters:
+        - name: tid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Check-in successful with XP reward
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckinResponse"
+              example:
+                id: "t1"
+                status: "done"
+                previous_status: "doing"
+                completed_at: "2026-06-08T15:00:00Z"
+                xp_earned: 20
+                dream_value_earned: 2
+                new_total_xp: 350
+                new_level: 4
+                xp_to_next_level: 50
+                streak: 7
+        "404":
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+        "409":
+          description: Task is not in 'doing' status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvalidTransitionError"
+              example:
+                error: "INVALID_TRANSITION"
+                message: "Can only check in tasks that are in 'doing' status"
+                current_status: "pending"
+                required_status: "doing"
+
+  # ──────────────────────────────────────────────
+  #  PROGRESS & REWARDS
+  # ──────────────────────────────────────────────
+  /api/users/me/xp:
+    get:
+      summary: Get user XP and level
+      operationId: getUserXp
+      tags: [Progress]
+      responses:
+        "200":
+          description: User XP summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/XpResponse"
+              example:
+                total_xp: 350
+                level: 4
+                xp_to_next_level: 50
+                total_tasks_completed: 12
+                total_dream_value: 35
+
+  /api/users/me/streak:
+    get:
+      summary: Get streak information
+      operationId: getUserStreak
+      tags: [Progress]
+      responses:
+        "200":
+          description: Streak info
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StreakResponse"
+              example:
+                current_streak: 7
+                longest_streak: 12
+                checked_in_today: true
+                last_checkin_date: "2026-06-08"
+
+  /api/projects/{pid}/reward:
+    get:
+      summary: Get dream reward progress for a project
+      operationId: getProjectReward
+      tags: [Progress]
+      parameters:
+        - name: pid
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Dream reward progress
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RewardResponse"
+              example:
+                project_id: "a1b2c3d4"
+                reward_name: "一台机械键盘"
+                reward_price: 5000
+                dream_value_earned: 35
+                progress_percent: 0.7
+                estimated_days_remaining: 15
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotFoundError"
+
+  # ──────────────────────────────────────────────
+  #  USER
+  # ──────────────────────────────────────────────
+  /api/users/me:
+    get:
+      summary: Get current user profile
+      operationId: getCurrentUser
+      tags: [User]
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+              example:
+                id: "u1"
+                nickname: "Learner"
+                avatar: "https://example.com/avatar.png"
+                xp: 350
+                level: 4
+                streak: 7
+                created_at: "2026-06-01T00:00:00Z"
+                updated_at: "2026-06-08T15:00:00Z"
+
+    patch:
+      summary: Update user profile
+      operationId: updateCurrentUser
+      tags: [User]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+            example:
+              nickname: "Python Master"
+              avatar: "https://example.com/new-avatar.png"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+              example:
+                id: "u1"
+                nickname: "Python Master"
+                avatar: "https://example.com/new-avatar.png"
+                xp: 350
+                level: 4
+                streak: 7
+                created_at: "2026-06-01T00:00:00Z"
+                updated_at: "2026-06-08T15:05:00Z"
+        "422":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+
+# ──────────────────────────────────────────────
+#  COMPONENTS / SCHEMAS
+# ──────────────────────────────────────────────
+components:
+  schemas:
+    # ── Request Schemas ──
+    CreateProjectRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 2000
+        reward:
+          type: string
+          maxLength: 200
+          description: Dream reward name (e.g. "机械键盘")
+        reward_price:
+          type: integer
+          minimum: 0
+          description: Dream value points needed to claim the reward
+        deadline:
+          type: string
+          format: date
+
+    ImportRequest:
+      type: object
+      required: [markdown]
+      properties:
+        markdown:
+          type: string
+          description: Full Markdown DSL document
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        nickname:
+          type: string
+          minLength: 1
+          maxLength: 50
+        avatar:
+          type: string
+          format: uri
+          maxLength: 500
+
+    # ── Response Schemas ──
+    Project:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        reward:
+          type: string
+          nullable: true
+        reward_price:
+          type: integer
+          nullable: true
+        deadline:
+          type: string
+          format: date
+          nullable: true
+        progress:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+        created_at:
+          type: string
+          format: date-time
+
+    ProjectDetail:
+      allOf:
+        - $ref: "#/components/schemas/Project"
+        - type: object
+          properties:
+            stages:
+              type: array
+              items:
+                $ref: "#/components/schemas/StageSummary"
+
+    StageSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        sort_order:
+          type: integer
+        progress:
+          type: number
+          format: float
+        task_count:
+          type: integer
+        done_count:
+          type: integer
+
+    ImportResponse:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        stage_count:
+          type: integer
+        task_count:
+          type: integer
+
+    TaskSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        stage_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        type:
+          type: string
+          enum: [theory, practice, output]
+        xp:
+          type: integer
+        status:
+          type: string
+          enum: [pending, doing, done]
+        sort_order:
+          type: integer
+
+    TaskDetail:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        stage_id:
+          type: string
+          format: uuid
+        stage_title:
+          type: string
+        project_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        type:
+          type: string
+          enum: [theory, practice, output]
+        xp:
+          type: integer
+        estimate:
+          type: integer
+          description: Estimated time in minutes
+        status:
+          type: string
+          enum: [pending, doing, done]
+        depends:
+          type: array
+          items:
+            type: string
+          description: IDs of tasks that must be completed first
+        check:
+          type: string
+          nullable: true
+          description: Acceptance criteria
+        resource:
+          type: string
+          nullable: true
+          description: Learning resource URL or reference
+        sort_order:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    TodayTask:
+      allOf:
+        - $ref: "#/components/schemas/TaskSummary"
+        - type: object
+          properties:
+            stage_title:
+              type: string
+            depends:
+              type: array
+              items:
+                type: string
+            blocked:
+              type: boolean
+              description: True if dependencies are unmet
+            check:
+              type: string
+              nullable: true
+
+    TaskStatusResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, doing, done]
+        previous_status:
+          type: string
+          enum: [pending, doing, done]
+        started_at:
+          type: string
+          format: date-time
+
+    CheckinResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [done]
+        previous_status:
+          type: string
+          enum: [doing]
+        completed_at:
+          type: string
+          format: date-time
+        xp_earned:
+          type: integer
+        dream_value_earned:
+          type: integer
+        new_total_xp:
+          type: integer
+        new_level:
+          type: integer
+        xp_to_next_level:
+          type: integer
+        streak:
+          type: integer
+
+    XpResponse:
+      type: object
+      properties:
+        total_xp:
+          type: integer
+        level:
+          type: integer
+        xp_to_next_level:
+          type: integer
+        total_tasks_completed:
+          type: integer
+        total_dream_value:
+          type: integer
+
+    StreakResponse:
+      type: object
+      properties:
+        current_streak:
+          type: integer
+        longest_streak:
+          type: integer
+        checked_in_today:
+          type: boolean
+        last_checkin_date:
+          type: string
+          format: date
+
+    RewardResponse:
+      type: object
+      properties:
+        project_id:
+          type: string
+          format: uuid
+        reward_name:
+          type: string
+          nullable: true
+        reward_price:
+          type: integer
+          nullable: true
+        dream_value_earned:
+          type: integer
+        progress_percent:
+          type: number
+          format: float
+        estimated_days_remaining:
+          type: integer
+          nullable: true
+
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        nickname:
+          type: string
+        avatar:
+          type: string
+          nullable: true
+        xp:
+          type: integer
+        level:
+          type: integer
+        streak:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    # ── Error Schemas ──
+    ValidationError:
+      type: object
+      properties:
+        detail:
+          type: array
+          items:
+            type: object
+            properties:
+              loc:
+                type: array
+                items:
+                  type: string
+              msg:
+                type: string
+              type:
+                type: string
+
+    NotFoundError:
+      type: object
+      properties:
+        detail:
+          type: string
+      example:
+        detail: "Project not found"
+
+    DslError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [PARSE_ERROR, VALIDATION_ERROR]
+        line:
+          type: integer
+          description: Line number where error occurred (PARSE_ERROR only)
+        message:
+          type: string
+
+    InvalidTransitionError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [INVALID_TRANSITION]
+        message:
+          type: string
+        current_status:
+          type: string
+        required_status:
+          type: string
+
+    DependencyBlockedError:
+      type: object
+      properties:
+        error:
+          type: string
+          enum: [DEPENDENCY_BLOCKED]
+        message:
+          type: string
+        blocked_by:
+          type: array
+          items:
+            type: string

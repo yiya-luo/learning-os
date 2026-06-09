@@ -1,0 +1,130 @@
+{
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^TaskCard": "@/components/TaskCard.vue",
+      "^ProgressBar": "@/components/ProgressBar.vue",
+      "^CheckinAnimation": "@/components/CheckinAnimation.vue",
+      "^StageNode": "@/components/StageNode.vue",
+      "^LevelCard": "@/components/LevelCard.vue",
+      "^EmptyState": "@/components/EmptyState.vue"
+    }
+  },
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "style": {
+        "navigationBarTitleText": "Learning OS",
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/map/index",
+      "style": {
+        "navigationBarTitleText": "学习地图",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/task/index",
+      "style": {
+        "navigationBarTitleText": "今日任务",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/heatmap/index",
+      "style": {
+        "navigationBarTitleText": "成长",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/reward/index",
+      "style": {
+        "navigationBarTitleText": "梦想奖励",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "我的",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/import/index",
+      "style": {
+        "navigationBarTitleText": "导入学习计划",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/timeline/index",
+      "style": {
+        "navigationBarTitleText": "成长时间线",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/analytics/index",
+      "style": {
+        "navigationBarTitleText": "数据洞察",
+        "navigationStyle": "custom"
+      }
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "Learning OS",
+    "navigationBarBackgroundColor": "#F8F9FB",
+    "backgroundColor": "#F8F9FB"
+  },
+  "tabBar": {
+    "color": "#8F99A3",
+    "selectedColor": "#E6B93D",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "height": "56px",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "首页",
+        "iconPath": "static/tab/home-outlined.png",
+        "selectedIconPath": "static/tab/home-filled.png"
+      },
+      {
+        "pagePath": "pages/map/index",
+        "text": "学习地图",
+        "iconPath": "static/tab/map-outlined.png",
+        "selectedIconPath": "static/tab/map-filled.png"
+      },
+      {
+        "pagePath": "pages/task/index",
+        "text": "今日任务",
+        "iconPath": "static/tab/task-outlined.png",
+        "selectedIconPath": "static/tab/task-filled.png"
+      },
+      {
+        "pagePath": "pages/heatmap/index",
+        "text": "成长",
+        "iconPath": "static/tab/growth-outlined.png",
+        "selectedIconPath": "static/tab/growth-filled.png"
+      },
+      {
+        "pagePath": "pages/reward/index",
+        "text": "梦想奖励",
+        "iconPath": "static/tab/reward-outlined.png",
+        "selectedIconPath": "static/tab/reward-filled.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "static/tab/profile-outlined.png",
+        "selectedIconPath": "static/tab/profile-filled.png"
+      }
+    ]
+  }
+}
