@@ -2,7 +2,7 @@
 easter egg system, and achievements."""
 
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 
 DREAM_MULTIPLIER = 5.0
@@ -414,7 +414,6 @@ def process_task_completed(
 ) -> dict:
     task_xp = task.get("xp", 0)
     current_streak = user.get("streak", 0)
-    prev_streak = current_streak
     last_checkin_date = user.get("last_checkin_date")
     total_xp = user.get("xp", 0)
     longest_streak = user.get("longest_streak", current_streak)
@@ -422,7 +421,6 @@ def process_task_completed(
 
     # 1. Calculate base XP with streak bonus
     xp_earned = calculate_xp(task_xp, current_streak)
-    base_dream_xp = xp_earned  # dream value uses task XP only (with streak bonus)
 
     new_total_xp = total_xp + xp_earned
 

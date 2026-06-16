@@ -1,6 +1,5 @@
 """Tests for the milestones service."""
 
-import pytest
 from unittest.mock import MagicMock
 from app.services.milestones import (
     MILESTONES,
@@ -108,7 +107,6 @@ class TestEvaluateMilestones:
     """Integration tests for evaluate_milestones with mocked DB."""
 
     def _make_mock_db(self, **overrides):
-        from app.models.models import User, Checkin, Project, Stage, Task
 
         db = MagicMock()
 

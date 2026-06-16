@@ -1,7 +1,6 @@
 """Tests for the Markdown DSL parser."""
 
-import pytest
-from app.services.parser import parse_markdown, validate_dsl, ParseError
+from app.services.parser import parse_markdown, validate_dsl
 
 
 # ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import re
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -120,7 +120,7 @@ def normalize_markdown(content: str) -> str:
 
         elif h2:
             stage_title = h2.group(1).strip()
-            output.append(f"## Stage")
+            output.append("## Stage")
             output.append(f"title: {stage_title}")
             output.append("")
             i += 1
@@ -248,7 +248,6 @@ def parse_markdown(content: str) -> dict:
 
     # Phase 1: find project header and collect its body
     parse_idx = 0
-    project_start_line = 0
     found_project = False
 
     while parse_idx < len(lineno_to_index):
@@ -264,7 +263,6 @@ def parse_markdown(content: str) -> dict:
             level, text = heading
             if level == 1 and text == "Project" and not found_project:
                 found_project = True
-                project_start_line = ln
                 parse_idx += 1
                 # Collect project body lines (until --- or next ## / ### heading)
                 while parse_idx < len(lineno_to_index):

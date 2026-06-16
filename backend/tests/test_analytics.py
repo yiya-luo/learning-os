@@ -1,16 +1,14 @@
 """Unit and integration tests for the analytics service and API endpoint."""
 
 import os
-import sys
 from datetime import date, datetime, timedelta
-from unittest.mock import MagicMock, patch
 
 import pytest
 
 # Use in-memory SQLite for tests
 os.environ["DATABASE_URL"] = "sqlite:///./test_analytics.db"
 
-from app.database import Base, SessionLocal, engine, init_db  # noqa: E402
+from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.models.models import Checkin, Project, Stage, Task, User  # noqa: E402
 from app.services.analytics import (  # noqa: E402
     _compute_changes,
@@ -18,7 +16,6 @@ from app.services.analytics import (  # noqa: E402
     _compute_radar,
     _compute_stage_progress,
     _compute_summary,
-    _compute_task_type_distribution,
     _compute_trend,
     _date_range_for_period,
     get_analytics,

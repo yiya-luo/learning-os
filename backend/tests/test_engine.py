@@ -4,7 +4,6 @@ import pytest
 
 from app.services.engine import (
     CheckinResult,
-    TaskCompletedEvent,
     TaskStateError,
     TaskStatus,
     can_transition,

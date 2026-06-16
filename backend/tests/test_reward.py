@@ -1,19 +1,11 @@
 """Unit tests for the reward service."""
 
 import random
-from datetime import date
-from unittest.mock import MagicMock, patch
+from datetime import date, timedelta
+from unittest.mock import MagicMock
 
-import pytest
 
 from app.services.reward import (
-    ACHIEVEMENTS,
-    DREAM_MULTIPLIER,
-    EASTER_EGG_RESOURCES,
-    LEVEL_THRESHOLDS,
-    DreamProgress,
-    LevelInfo,
-    StreakInfo,
     calculate_dream_progress,
     calculate_xp,
     check_level_up,
@@ -235,8 +227,10 @@ class TestUpdateStreak:
 
 
 class TestProcessTaskCompleted:
+    yesterday = (date.today() - timedelta(days=1)).isoformat()
+
     def test_full_integration(self):
-        user = {"id": "u1", "xp": 100, "level": 2, "streak": 6, "last_checkin_date": "2026-06-07"}
+        user = {"id": "u1", "xp": 100, "level": 2, "streak": 6, "last_checkin_date": self.yesterday}
         task = {"id": "t1", "xp": 20}
         result = process_task_completed(user, task, 15000)
 
@@ -255,7 +249,7 @@ class TestProcessTaskCompleted:
         assert result["bonus_xp_total"] == 0
 
     def test_level_up_integration(self):
-        user = {"id": "u1", "xp": 90, "level": 1, "streak": 7, "last_checkin_date": "2026-06-07"}
+        user = {"id": "u1", "xp": 90, "level": 1, "streak": 7, "last_checkin_date": self.yesterday}
         task = {"id": "t1", "xp": 10}
         result = process_task_completed(user, task, 15000)
 
@@ -266,7 +260,7 @@ class TestProcessTaskCompleted:
         assert result["new_level"] == 2
 
     def test_zero_xp_task(self):
-        user = {"id": "u1", "xp": 50, "level": 1, "streak": 3, "last_checkin_date": "2026-06-07"}
+        user = {"id": "u1", "xp": 50, "level": 1, "streak": 3, "last_checkin_date": self.yesterday}
         task = {"id": "t1", "xp": 0}
         result = process_task_completed(user, task, 1000)
 
@@ -275,7 +269,7 @@ class TestProcessTaskCompleted:
         assert result["leveled_up"] is False
 
     def test_streak_30_day_bonus(self):
-        user = {"id": "u1", "xp": 100, "level": 2, "streak": 30, "last_checkin_date": "2026-06-07"}
+        user = {"id": "u1", "xp": 100, "level": 2, "streak": 30, "last_checkin_date": self.yesterday}
         task = {"id": "t1", "xp": 20}
         result = process_task_completed(user, task, 10000)
 
@@ -354,7 +348,7 @@ class TestEasterEgg:
         mock_db = MagicMock()
         mock_db.query.return_value.filter.return_value.all.return_value = []
 
-        user = {"id": "u1", "xp": 100, "level": 2, "streak": 0, "last_checkin_date": "2026-06-07", "longest_streak": 0}
+        user = {"id": "u1", "xp": 100, "level": 2, "streak": 0, "last_checkin_date": (date.today() - timedelta(days=1)).isoformat(), "longest_streak": 0}
         task = {"id": "t1", "xp": 20, "stage_id": "s1"}
         result = process_task_completed(user, task, 15000, db_session=mock_db,
                                         current_checkin_count=5,

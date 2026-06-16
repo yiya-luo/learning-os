@@ -77,7 +77,7 @@ def get_encouragement(
     Returns:
         {"type": str, "icon": str, "color": str, "message": str, "bonus": dict | None}
     """
-    from app.models.models import Checkin, Project, Task, User
+    from app.models.models import Project, Task, User
 
     user = db_session.query(User).filter(User.id == "u1").first()
     project = db_session.query(Project).filter(Project.id == project_id).first()

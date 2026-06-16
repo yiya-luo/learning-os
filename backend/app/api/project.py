@@ -18,7 +18,7 @@ from app.models.schemas import (
     ProjectResponse,
     StageSummary,
 )
-from app.services.parser import ParseError, normalize_markdown, parse_markdown, validate_dsl
+from app.services.parser import normalize_markdown, parse_markdown, validate_dsl
 
 router = APIRouter(prefix="/api", tags=["Projects"])
 

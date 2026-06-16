@@ -1,6 +1,5 @@
 """Tests for the timeline service."""
 
-import pytest
 from unittest.mock import MagicMock
 from app.services.timeline import (
     get_timeline,
@@ -74,7 +73,7 @@ class TestTimelinePagination:
 
         from app.models.models import Task
         task = MagicMock(spec=Task)
-        task.title = f"Test Task"
+        task.title = "Test Task"
         task.type = "theory"
 
         checkin_mock = MagicMock()

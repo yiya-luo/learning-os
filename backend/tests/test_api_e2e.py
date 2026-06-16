@@ -1,8 +1,6 @@
 """E2E integration tests — full import → checkin → reward flow."""
 
 import os
-import sys
-import uuid
 from datetime import date
 
 import pytest
@@ -11,7 +9,7 @@ from fastapi.testclient import TestClient
 # Use in-memory SQLite for tests
 os.environ["DATABASE_URL"] = "sqlite:///./test_e2e.db"
 
-from app.database import init_db, SessionLocal, engine, Base  # noqa: E402
+from app.database import SessionLocal, engine, Base  # noqa: E402
 from app.main import app  # noqa: E402
 
 client = TestClient(app)

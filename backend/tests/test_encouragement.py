@@ -1,11 +1,9 @@
 """Tests for the encouragement engine."""
 
 import random
-import pytest
 from unittest.mock import MagicMock, patch
 from app.services.encouragement import (
     ENCOURAGEMENT_CONFIG,
-    get_encouragement,
     _make_default_growth,
     _make_result,
     _easter_egg_result,
@@ -209,7 +207,6 @@ class TestEncouragementIntegration:
         }.get(model, MagicMock())
 
         # We need to be careful about mocking. Let's test the pure functions instead.
-        from app.services.encouragement import _check_reward_threshold
 
     def test_pure_reward_threshold_function(self):
         """Test reward threshold detection."""

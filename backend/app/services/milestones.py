@@ -231,7 +231,7 @@ def evaluate_milestones(user, db_session) -> list[dict]:
 
     # Evaluate each milestone
     results = []
-    now_str = datetime.now(timezone.utc).isoformat()
+    datetime.now(timezone.utc).isoformat()
 
     for ms in MILESTONES:
         achieved = _evaluate_condition(ms, {

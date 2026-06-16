@@ -1,6 +1,5 @@
 """Timeline service — paginated event feed from checkins, milestones, achievements, stages."""
 
-from datetime import datetime, timezone
 
 
 def get_timeline(
@@ -22,7 +21,7 @@ def get_timeline(
     Returns:
         {"events": list[dict], "pagination": {"page": int, "page_size": int, "total": int, "has_more": bool}}
     """
-    from app.models.models import Achievement, Checkin, Project, Stage, Task
+    from app.models.models import Achievement, Checkin, Stage, Task
 
     events: list[dict] = []
 
