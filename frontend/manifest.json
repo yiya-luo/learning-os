@@ -1,6 +1,6 @@
 {
   "name": "Learning OS",
-  "appid": "wx80c67e5edc61479a",
+  "appid": "",
   "description": "AI-independent learning execution system",
   "versionName": "1.0.0",
   "versionCode": "1",
@@ -25,7 +25,7 @@
     }
   },
   "mp-weixin": {
-    "appid": "wx80c67e5edc61479a",
+    "appid": "",
     "setting": {
       "urlCheck": false
     },
