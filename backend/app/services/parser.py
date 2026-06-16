@@ -15,16 +15,189 @@ class ParseError:
 
 
 # ---------------------------------------------------------------------------
-# Parser
+# Regex patterns
 # ---------------------------------------------------------------------------
 
-# Regex patterns
 _RE_H1 = re.compile(r"^#\s+(.+)$")
 _RE_H2 = re.compile(r"^##\s+(.+)$")
 _RE_H3 = re.compile(r"^###\s+(.+)$")
 _RE_KEYVAL = re.compile(r"^([a-z_]+):\s*(.*?)\s*$")
 _RE_TASK_ID = re.compile(r"^T\d{3}$")
 _RE_HR = re.compile(r"^---\s*$")
+
+# Free-form task heading: ### T001 theory 30 Task Title
+_RE_FREE_TASK = re.compile(r"^(T\d{3})\s+(theory|practice|output)\s+(\d+)\s+(.+)$")
+
+
+# ---------------------------------------------------------------------------
+# Normalizer — converts free-form markdown to standard DSL
+# ---------------------------------------------------------------------------
+
+def normalize_markdown(content: str) -> str:
+    """If the markdown is in free-form format, convert it to standard DSL.
+
+    Free-form format:
+        # Plan Title
+        Plan description
+
+        ## Stage Name
+        Stage description
+
+        ### T001 theory 30 Task Title
+        Task description
+        > Completion criteria
+        * https://resource-url
+
+    Standard DSL format (what parse_markdown expects):
+        # Project
+        title: Plan Title
+        description: Plan description
+        deadline: 30
+        ---
+        ## Stage
+        title: Stage Name
+
+        ### Task
+        id: T001
+        title: Task Title
+        type: theory
+        estimate: 30
+        xp: 20
+        check: Completion criteria
+        resource: https://resource-url
+    """
+    lines = content.split("\n")
+
+    # Quick check: if it already starts with # Project, pass through
+    for line in lines:
+        stripped = line.strip()
+        if stripped == "":
+            continue
+        if _RE_H1.match(stripped):
+            _, text = stripped.split(" ", 1) if " " in stripped else ("", "")
+            text = _RE_H1.match(stripped).group(1).strip()
+            if text == "Project":
+                return content
+            break
+        break
+
+    # Free-form detected — convert
+    output: list[str] = []
+    total_estimate = 0
+    task_count = 0
+
+    i = 0
+    project_title = ""
+    project_desc = ""
+
+    while i < len(lines):
+        line = lines[i].rstrip()
+        stripped = line.strip()
+
+        h1 = _RE_H1.match(stripped)
+        h2 = _RE_H2.match(stripped)
+        h3 = _RE_H3.match(stripped)
+
+        if h1 and not project_title:
+            project_title = h1.group(1).strip()
+            i += 1
+            # Collect description lines until next heading
+            desc_parts = []
+            while i < len(lines):
+                nline = lines[i].strip()
+                if nline == "" or _RE_HR.match(nline):
+                    i += 1
+                    continue
+                if _RE_H1.match(nline) or _RE_H2.match(nline) or _RE_H3.match(nline):
+                    break
+                if not _RE_KEYVAL.match(nline):
+                    desc_parts.append(nline)
+                else:
+                    break
+                i += 1
+            project_desc = " ".join(desc_parts) if desc_parts else project_title
+            continue
+
+        elif h2:
+            stage_title = h2.group(1).strip()
+            output.append(f"## Stage")
+            output.append(f"title: {stage_title}")
+            output.append("")
+            i += 1
+            # Skip stage description lines
+            while i < len(lines):
+                nline = lines[i].strip()
+                if nline == "" or _RE_HR.match(nline):
+                    i += 1
+                    continue
+                if _RE_H1.match(nline) or _RE_H2.match(nline) or _RE_H3.match(nline):
+                    break
+                if not _RE_KEYVAL.match(nline) and not nline.startswith(">") and not nline.startswith("*"):
+                    i += 1
+                    continue
+                break
+            continue
+
+        elif h3:
+            heading_text = h3.group(1).strip()
+            m = _RE_FREE_TASK.match(heading_text)
+            if m:
+                tid, ttype, estimate, ttitle = m.groups()
+                task_count += 1
+                total_estimate += int(estimate)
+                output.append("### Task")
+                output.append(f"id: {tid}")
+                output.append(f"title: {ttitle}")
+                output.append(f"type: {ttype}")
+                output.append(f"estimate: {estimate}")
+                output.append(f"xp: {_estimate_xp(ttype)}")
+                i += 1
+                # Collect task body: description, > check, * resource
+                while i < len(lines):
+                    nline = lines[i].strip()
+                    if nline == "":
+                        i += 1
+                        continue
+                    if _RE_H1.match(nline) or _RE_H2.match(nline) or _RE_H3.match(nline):
+                        break
+                    if nline.startswith("> "):
+                        output.append(f"check: {nline[2:]}")
+                    elif nline.startswith("* "):
+                        url = nline[2:].strip()
+                        if url.startswith("http"):
+                            output.append(f"resource: {url}")
+                    i += 1
+                output.append("")
+                continue
+            else:
+                # Heading like "### Task" with key:value body — already standard
+                output.append(f"### {heading_text}")
+                i += 1
+                continue
+        else:
+            i += 1
+            continue
+
+    # Build the final normalized output
+    deadline = max(1, total_estimate // 60) if total_estimate > 0 else 30
+    header = [
+        "# Project",
+        f"title: {project_title}",
+        f"description: {project_desc}",
+        f"deadline: {deadline}",
+        "---",
+        "",
+    ]
+
+    return "\n".join(header + output)
+
+
+def _estimate_xp(task_type: str) -> int:
+    if task_type == "output":
+        return 30
+    if task_type == "practice":
+        return 20
+    return 15
 
 
 def _extract_heading(line: str) -> tuple[int, str] | None:

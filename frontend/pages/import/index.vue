@@ -2,9 +2,11 @@
   <view class="import-page">
     <!-- Nav header -->
     <view class="import-nav">
-      <text class="import-nav__back" @tap="goBack">← 返回</text>
+      <view class="import-nav__back" @tap="goBack">
+        <text class="import-nav__back-text">← 返回</text>
+      </view>
       <text class="import-nav__title">导入学习计划</text>
-      <view />
+      <view class="import-nav__spacer" />
     </view>
 
     <scroll-view class="import-content" scroll-y>
@@ -104,6 +106,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import { api } from '@/utils/api'
 import { useProjectStore } from '@/store/project'
 
 const projectStore = useProjectStore()
@@ -142,7 +145,7 @@ async function handlePreview() {
   previewData.value = null
 
   try {
-    const data = await projectStore.importDSL(markdown.value)
+    const data = await api.parseProject(markdown.value)
     previewData.value = data
   } catch (err) {
     previewError.value = err.message || '解析失败，请检查格式'
@@ -158,11 +161,11 @@ async function handleImport() {
   importLoading.value = true
 
   try {
-    const result = previewData.value
-    importResult.value = `已创建 "${result.title || '学习计划'}"\n${result.stage_count || 0} 个阶段 · ${result.task_count || 0} 个任务`
+    const data = await projectStore.importDSL(markdown.value)
+    importResult.value = `已创建 "${data.title || '学习计划'}"\n${data.stage_count || 0} 个阶段 · ${data.task_count || 0} 个任务`
     importSuccess.value = true
   } catch (err) {
-    uni.showToast({ title: '导入失败，请重试', icon: 'none' })
+    uni.showToast({ title: err.message || '导入失败，请重试', icon: 'none' })
   } finally {
     importLoading.value = false
   }
@@ -197,8 +200,20 @@ function goBack() {
 }
 
 .import-nav__back {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--space-sm);
+}
+
+.import-nav__back-text {
   font-size: var(--font-sm);
   color: var(--color-blue-400);
+}
+
+.import-nav__spacer {
+  min-width: 44px;
 }
 
 .import-nav__title {

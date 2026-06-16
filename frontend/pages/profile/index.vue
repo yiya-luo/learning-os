@@ -114,7 +114,7 @@
 
       <!-- Footer -->
       <view class="profile-footer">
-        <text class="profile-footer__text">Version 1.0.2 · Learning OS</text>
+        <text class="profile-footer__text">Version 1.3.0 · Learning OS</text>
       </view>
 
       <view class="profile-bottom-spacer" />
@@ -163,6 +163,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user'
 import { useProjectStore } from '@/store/project'
 import LevelCard from '@/components/LevelCard.vue'
@@ -275,6 +276,11 @@ function confirmLogout() {
 
 onMounted(() => {
   loadProfile()
+})
+
+onPullDownRefresh(async () => {
+  await loadProfile()
+  uni.stopPullDownRefresh()
 })
 </script>
 

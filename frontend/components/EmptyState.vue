@@ -29,6 +29,18 @@ defineEmits(['action'])
   align-items: center;
   justify-content: center;
   padding: var(--space-4xl) var(--space-lg);
+  animation: empty-fade-in 400ms ease-out;
+}
+
+@keyframes empty-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .empty-state__illustration {

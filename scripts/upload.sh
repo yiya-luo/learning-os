@@ -52,6 +52,7 @@ echo "→ Upload done."
 if [ "$DO_SUBMIT" = "--submit" ]; then
   echo "→ Submitting for review..."
   npx miniprogram-ci submit \
+    --pp "$BUILD_DIR" \
     --pkp "$KEY_FILE" \
     --appid wx80c67e5edc61479a \
     --uv "$VERSION" \

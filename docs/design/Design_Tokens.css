@@ -15,6 +15,11 @@
   --color-bg-overlay:     rgba(0, 0, 0, 0.50);
   --color-bg-toast:       rgba(0, 0, 0, 0.85);
 
+  /* Primary — Blue (专注蓝 / 主操作 / 选中态) */
+  --color-primary:        #2563EB;
+  --color-primary-light:  #EFF6FF;
+  --color-primary-dark:   #1D4ED8;
+
   /* Accent — Gold (梦想 / 成就 / 高亮) */
   --color-gold-300:       #F5D56B;
   --color-gold-400:       #E6B93D;  /* primary gold */
@@ -28,8 +33,9 @@
 
   /* Accent — Green (完成 / 成功 / 打卡) */
   --color-green-300:      #5CDB7A;
-  --color-green-400:      #22C55E;  /* primary green */
+  --color-green-400:      #10B981;  /* primary green */
   --color-green-500:      #169C45;
+  --color-green-light:    #ECFDF5;
 
   /* Accent — Purple (激励 / AI / 特殊) */
   --color-purple-300:     #B794F4;
@@ -69,6 +75,7 @@
   /* Gradient Backgrounds */
   --gradient-encouragement: linear-gradient(135deg, #1A1D22 0%, #2D2638 100%);
   --gradient-level-card:    linear-gradient(135deg, #1A1D22 0%, #1E2A3A 100%);
+  --gradient-progress:      linear-gradient(90deg, #2563EB 0%, #10B981 100%);
 
   /* --------------------------------------------
      Spacing Scale
@@ -141,11 +148,11 @@
 
   /* Button — interactive press */
   --shadow-button:
-    0 2px 8px rgba(230, 185, 61, 0.3);
+    0 2px 8px rgba(37, 99, 235, 0.3);
 
-  /* Button hover (gold) */
+  /* Button hover (blue) */
   --shadow-button-hover:
-    0 4px 16px rgba(230, 185, 61, 0.4);
+    0 4px 16px rgba(37, 99, 235, 0.4);
 
   /* Float — FAB / important actions */
   --shadow-float:

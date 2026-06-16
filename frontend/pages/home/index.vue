@@ -1,27 +1,26 @@
 <template>
   <view class="home-page">
-    <!-- Header: greeting + streak -->
+    <!-- Header: greeting + avatar -->
     <view class="home-header">
-      <view class="home-header__greeting">
-        <text class="home-header__time">{{ greeting }}</text>
-        <text class="home-header__sub">，{{ userStore.nickname }}</text>
+      <view class="home-header__left">
+        <text class="home-header__greeting">Hi, {{ userStore.nickname }} 👋</text>
+        <text class="home-header__quote">"{{ encouragement }}"</text>
       </view>
-      <text v-if="userStore.streak > 0" class="home-header__streak">
-        坚持的第 {{ userStore.streak }} 天 ✨
-      </text>
+      <view class="home-header__avatar">
+        <text class="home-header__avatar-emoji">{{ avatarEmoji }}</text>
+      </view>
     </view>
 
     <!-- Loading skeleton -->
     <view v-if="isLoading" class="home-skeleton">
-      <view class="skeleton-card skeleton-card--level" />
-      <view class="skeleton-card skeleton-card--quest" />
+      <view class="skeleton-card skeleton-card--project" />
+      <view class="skeleton-card skeleton-card--actions" />
       <view class="skeleton-card skeleton-card--tasks" />
-      <view class="skeleton-card skeleton-card--dream" />
     </view>
 
     <!-- Error state -->
     <view v-else-if="hasError" class="home-error">
-      <text class="home-error__text">加载失败: {{ error }}</text>
+      <text class="home-error__text">{{ error }}</text>
       <view class="home-error__retry" @tap="refreshAll">
         <text class="home-error__retry-text">重试</text>
       </view>
@@ -36,144 +35,91 @@
         action-text="导入学习计划"
         @action="goImport"
       />
-      <!-- Quick start actions -->
-      <view class="home-quick-actions">
-        <view class="quick-action quick-action--gold" @tap="goImport">
-          <text class="quick-action__icon">🎯</text>
-          <text class="quick-action__title">设置目标</text>
-          <text class="quick-action__desc">导入学习计划</text>
-        </view>
-        <view class="quick-action quick-action--blue" @tap="goRewardSetup">
-          <text class="quick-action__icon">🎁</text>
-          <text class="quick-action__title">设置激励</text>
-          <text class="quick-action__desc">配置梦想奖励</text>
-        </view>
-      </view>
     </view>
 
     <!-- Normal content -->
     <template v-else>
-      <!-- LevelCard -->
-      <view class="home-section" @tap="goProfile">
-        <LevelCard
-          :level="userStore.level"
-          :title="userStore.computedLevelTitle"
-          :xp="userStore.xp"
-          :xpToNext="userStore.xpToNextLevel"
-          :streak="userStore.streak"
-        />
-      </view>
-
-      <!-- Main Quest Progress -->
-      <view v-if="projectStore.currentProject" class="home-section">
-        <text class="home-section__title">今日主线任务</text>
-        <view class="home-quest-card">
-          <text class="home-quest__name">
-            {{ categoryIcon(projectStore.currentProject) }} {{ projectStore.currentProject.title }}
-          </text>
-          <ProgressBar
-            :value="projectStore.overallProgress"
-            :max="100"
-            size="normal"
-            color="blue"
-            showLabel
-          />
-          <text class="home-quest__sub" v-if="projectStore.currentProject.description">
-            {{ projectStore.currentProject.description }}
-          </text>
+      <!-- Project Card -->
+      <view class="home-project-card" v-if="projectStore.currentProject">
+        <view class="project-card__header">
+          <text class="project-card__icon">{{ categoryIcon(projectStore.currentProject) }}</text>
+          <text class="project-card__title">{{ projectStore.currentProject.title }}</text>
+          <view class="project-card__badge">
+            <text class="project-card__badge-text">完成率{{ projectStore.overallProgress }}%</text>
+          </view>
+        </view>
+        <view class="project-card__progress">
+          <view class="project-card__progress-bar" :style="{ width: projectStore.overallProgress + '%' }" />
+        </view>
+        <view class="project-card__stats">
+          <view class="project-card__stat">
+            <text class="project-card__stat-value">{{ taskStore.completedCount }}/{{ taskStore.totalCount }}</text>
+            <text class="project-card__stat-label">今日进度</text>
+          </view>
+          <view class="project-card__stat">
+            <text class="project-card__stat-value">{{ userStore.streak }}天 🔥</text>
+            <text class="project-card__stat-label">连续打卡</text>
+          </view>
         </view>
       </view>
 
-      <!-- Today Task Preview -->
-      <view v-if="taskStore.todayTasks.length > 0" class="home-section">
-        <view class="home-section__header">
-          <text class="home-section__title">今日任务 ({{ taskStore.totalCount }})</text>
-          <text class="home-section__link" @tap="goTasks">查看全部 →</text>
+      <!-- 4 Action Buttons -->
+      <view class="home-actions">
+        <view class="action-btn" @tap="goGoal">
+          <view class="action-btn__icon action-btn__icon--blue">
+            <text>📝</text>
+          </view>
+          <text class="action-btn__label">创建目标</text>
         </view>
-        <view class="home-tasks-list">
-          <TaskCard
-            v-for="task in taskStore.todayTasks.slice(0, 3)"
+        <view class="action-btn" @tap="goGoal">
+          <view class="action-btn__icon action-btn__icon--purple">
+            <text>✨</text>
+          </view>
+          <text class="action-btn__label">AI Prompt</text>
+        </view>
+        <view class="action-btn" @tap="goImport">
+          <view class="action-btn__icon action-btn__icon--green">
+            <text>📥</text>
+          </view>
+          <text class="action-btn__label">导入计划</text>
+        </view>
+        <view class="action-btn" @tap="goAnalytics">
+          <view class="action-btn__icon action-btn__icon--orange">
+            <text>📊</text>
+          </view>
+          <text class="action-btn__label">数据统计</text>
+        </view>
+      </view>
+
+      <!-- Today Tasks -->
+      <view v-if="taskStore.todayTasks.length > 0" class="home-tasks-card">
+        <text class="home-tasks__title">🎯 今日任务列表</text>
+        <view class="home-tasks__list">
+          <view
+            v-for="task in taskStore.todayTasks.slice(0, 5)"
             :key="task.id"
-            :task="task"
-            variant="checkbox"
-            size="compact"
-            @toggle="handleTaskToggle"
-          />
-        </view>
-      </view>
-
-      <!-- Dream Mini Progress -->
-      <view v-if="rewardStore.rewardTitle" class="home-section" @tap="goReward">
-        <text class="home-section__title">梦想奖励</text>
-        <view class="home-dream-card">
-          <text class="home-dream__name">🎁 {{ rewardStore.rewardTitle }} ¥{{ rewardStore.rewardPrice }}</text>
-          <ProgressBar
-            :value="rewardStore.progressPercent"
-            :max="100"
-            size="normal"
-            color="gold"
-            showLabel
-          />
-          <text class="home-dream__stats">
-            ¥{{ rewardStore.accumulatedValue }}/¥{{ rewardStore.rewardPrice }}
-          </text>
-          <text v-if="rewardStore.etaDate" class="home-dream__eta">
-            预计 {{ rewardStore.etaDate }} 完成
-          </text>
-        </view>
-      </view>
-
-      <!-- Encouragement Card -->
-      <view class="home-section">
-        <view class="home-encouragement" @tap="refreshEncouragement">
-          <text class="home-encouragement__text">{{ encouragement }}</text>
-        </view>
-      </view>
-
-      <!-- Quick Actions -->
-      <view class="home-quick-actions">
-        <view class="quick-action quick-action--gold" @tap="goImport">
-          <text class="quick-action__icon">🎯</text>
-          <text class="quick-action__title">设置目标</text>
-        </view>
-        <view class="quick-action quick-action--blue" @tap="goRewardSetup">
-          <text class="quick-action__icon">🎁</text>
-          <text class="quick-action__title">设置激励</text>
+            class="task-item"
+            :class="{ 'task-item--done': task.done }"
+            @tap="handleTaskToggle(task.id)"
+          >
+            <view class="task-item__checkbox" :class="{ 'task-item__checkbox--checked': task.done }">
+              <text v-if="task.done" class="task-item__check">✓</text>
+            </view>
+            <text class="task-item__text" :class="{ 'task-item__text--done': task.done }">{{ task.title }}</text>
+          </view>
         </view>
       </view>
     </template>
-
-    <!-- Fly-in animation overlay -->
-    <view v-if="flyIn.visible" class="fly-container">
-      <text
-        class="fly-text fly-text--xp"
-        :style="{
-          '--fly-x': flyIn.xpX + 'px',
-          '--fly-y': flyIn.xpY + 'px',
-          animationDelay: '0ms'
-        }"
-      >+{{ flyIn.xp }} XP</text>
-      <text
-        class="fly-text fly-text--dream"
-        :style="{
-          '--fly-x': flyIn.dreamX + 'px',
-          '--fly-y': flyIn.dreamY + 'px',
-          animationDelay: '100ms'
-        }"
-      >+{{ flyIn.dream }} 梦想值</text>
-    </view>
   </view>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
+import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { useUserStore } from '@/store/user'
 import { useProjectStore } from '@/store/project'
 import { useTaskStore } from '@/store/task'
 import { useRewardStore } from '@/store/reward'
-import LevelCard from '@/components/LevelCard.vue'
-import ProgressBar from '@/components/ProgressBar.vue'
-import TaskCard from '@/components/TaskCard.vue'
 import EmptyState from '@/components/EmptyState.vue'
 
 const userStore = useUserStore()
@@ -184,29 +130,27 @@ const rewardStore = useRewardStore()
 const isLoading = ref(true)
 const hasError = ref(false)
 const error = ref('')
-const encouragement = ref('每一次微小的坚持，都在重塑未来的你。')
-
-/* Fly-in animation state */
-const flyIn = ref({ visible: false, xp: 0, dream: 0, xpX: 0, xpY: 0, dreamX: 0, dreamY: 0 })
+const encouragement = ref('')
+const avatarEmoji = ref('🦊')
 
 const encouragements = [
   '每一次微小的坚持，都在重塑未来的你。',
   '学习的复利效应，会在某一天给你惊喜。',
-  '昨天的你决定了今天的你，今天的你塑造明天的你。',
   '成长不是一蹴而就，而是日积月累的奇迹。',
   '与其焦虑远方，不如做好今天的任务。',
-  '每天进步1% 一年后你将成长37倍。'
+  '每天进步1%，一年后你将成长37倍。',
+  '把大目标拆成小任务，然后一个个搞定。'
 ]
 
-const greeting = computed(() => {
-  const h = new Date().getHours()
-  if (h < 6) return '凌晨好'
-  if (h < 12) return '上午好'
-  if (h < 14) return '中午好'
-  if (h < 18) return '下午好'
-  return '晚上好'
-})
-
+function categoryIcon(project) {
+  const title = (project.title || '').toLowerCase()
+  if (title.includes('python') || title.includes('编程') || title.includes('code')) return '💻'
+  if (title.includes('英语') || title.includes('english')) return '🌍'
+  if (title.includes('数学') || title.includes('算法')) return '🧮'
+  if (title.includes('cfa') || title.includes('金融') || title.includes('量化')) return '📚'
+  return '📚'
+}
+/* PLACEHOLDER_SCRIPT_REST */
 async function refreshAll() {
   isLoading.value = true
   hasError.value = false
@@ -218,7 +162,7 @@ async function refreshAll() {
       userStore.fetchStreak(),
       projectStore.fetchProjects()
     ])
-
+    if (userStore.avatar) avatarEmoji.value = userStore.avatar
     const pid = projectStore.currentProjectId
     if (pid) {
       await Promise.all([
@@ -234,247 +178,269 @@ async function refreshAll() {
   }
 }
 
-function refreshEncouragement() {
-  const idx = Math.floor(Math.random() * encouragements.length)
-  encouragement.value = encouragements[idx]
-}
-
-function categoryIcon(project) {
-  return '📚'
-}
-
 function handleTaskToggle(tid) {
   taskStore.toggleTaskLocally(tid)
 }
 
-function goProfile() {
-  uni.switchTab({ url: '/pages/profile/index' })
-}
-
-function goTasks() {
-  uni.switchTab({ url: '/pages/task/index' })
-}
-
-function goReward() {
-  uni.switchTab({ url: '/pages/reward/index' })
-}
-
-function goImport() {
-  uni.navigateTo({ url: '/pages/import/index' })
-}
-
-function goRewardSetup() {
-  uni.navigateTo({ url: '/pages/reward/index' })
-}
-
-/* Fly-in animation trigger */
-function triggerFlyIn(xp, dream) {
-  const query = uni.createSelectorQuery()
-  query.select('.home-dream-card').boundingClientRect()
-  query.exec((res) => {
-    const target = res[0]
-    if (!target) return
-
-    const systemInfo = uni.getSystemInfoSync()
-    const screenW = systemInfo.windowWidth
-    const screenH = systemInfo.windowHeight
-
-    // Start from bottom-center (checkin button position)
-    const startX = screenW / 2
-    const startY = screenH - 120
-
-    // Target is dream card center
-    const targetX = target.left + target.width / 2
-    const targetY = target.top + target.height / 2
-
-    flyIn.value = {
-      visible: true,
-      xp,
-      dream,
-      xpX: targetX - startX,
-      xpY: targetY - startY,
-      dreamX: targetX - startX,
-      dreamY: targetY - startY + 24
-    }
-
-    setTimeout(() => {
-      flyIn.value.visible = false
-    }, 1600)
-  })
-}
+function goGoal() { uni.navigateTo({ url: '/pages/goal/index' }) }
+function goImport() { uni.navigateTo({ url: '/pages/import/index' }) }
+function goAnalytics() { uni.navigateTo({ url: '/pages/analytics/index' }) }
 
 onMounted(() => {
+  encouragement.value = encouragements[Math.floor(Math.random() * encouragements.length)]
   refreshAll()
+})
+
+onPullDownRefresh(async () => {
+  await refreshAll()
+  uni.stopPullDownRefresh()
 })
 </script>
 
 <style scoped>
 .home-page {
-  padding: 0 var(--page-padding-h) var(--section-gap);
+  padding: var(--page-padding-top) var(--page-padding-h);
+  padding-bottom: 80px;
   min-height: 100vh;
+  background: var(--color-bg-light);
 }
 
 .home-header {
-  margin-bottom: var(--section-gap);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: var(--space-xl);
+}
+
+.home-header__left {
+  flex: 1;
 }
 
 .home-header__greeting {
   font-size: var(--font-2xl);
   font-weight: var(--weight-bold);
   color: var(--color-text-primary);
-}
-
-.home-header__time {
-  display: inline;
-}
-
-.home-header__sub {
-  display: inline;
-  font-weight: var(--weight-normal);
-}
-
-.home-header__streak {
   display: block;
+}
+
+.home-header__quote {
   font-size: var(--font-sm);
-  color: var(--color-gold-400);
-  margin-top: 4px;
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
+  display: block;
+  line-height: var(--leading-relaxed);
 }
+/* PLACEHOLDER_STYLE_REST */
 
-.home-section {
-  margin-bottom: var(--section-gap);
-}
-
-.home-section__header {
+.home-header__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  border: 2px solid var(--color-primary);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  margin-left: var(--space-md);
 }
 
-.home-section__title {
+.home-header__avatar-emoji {
+  font-size: 24px;
+}
+
+/* Project Card */
+.home-project-card {
+  background: var(--color-bg-card-light);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+  box-shadow: var(--shadow-card);
+  margin-bottom: var(--space-xl);
+}
+
+.project-card__header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-sm);
+}
+
+.project-card__icon {
+  font-size: 20px;
+  margin-right: var(--space-xs);
+}
+
+.project-card__title {
+  flex: 1;
+  font-size: var(--font-lg);
+  font-weight: var(--weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.project-card__badge {
+  background: var(--color-primary-light);
+  border-radius: var(--radius-md);
+  padding: 4px 10px;
+}
+
+.project-card__badge-text {
+  font-size: var(--font-xs);
+  color: var(--color-primary);
+  font-weight: var(--weight-semibold);
+}
+
+.project-card__progress {
+  height: 12px;
+  background: var(--color-gray-100);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-bottom: var(--space-md);
+}
+
+.project-card__progress-bar {
+  height: 100%;
+  background: var(--gradient-progress);
+  border-radius: var(--radius-full);
+  transition: width 300ms ease-out;
+}
+
+.project-card__stats {
+  display: flex;
+}
+
+.project-card__stat {
+  flex: 1;
+}
+
+.project-card__stat-value {
+  font-size: var(--font-md);
+  font-weight: var(--weight-bold);
+  color: var(--color-text-primary);
+  display: block;
+}
+
+.project-card__stat-label {
+  font-size: var(--font-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+/* PLACEHOLDER_STYLE_2 */
+
+/* Action Buttons Grid */
+.home-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.action-btn {
+  background: var(--color-bg-card-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  box-shadow: var(--shadow-card);
+  transition: transform 150ms ease-out;
+}
+
+.action-btn:active {
+  transform: scale(0.95);
+}
+
+.action-btn__icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.action-btn__icon--blue { background: #EFF6FF; }
+.action-btn__icon--purple { background: #F5F3FF; }
+.action-btn__icon--green { background: #ECFDF5; }
+.action-btn__icon--orange { background: #FFF7ED; }
+
+.action-btn__label {
+  font-size: var(--font-xs);
+  color: var(--color-text-primary);
+  font-weight: var(--weight-medium);
+}
+
+/* Tasks Card */
+.home-tasks-card {
+  background: var(--color-bg-card-light);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+  box-shadow: var(--shadow-card);
+}
+
+.home-tasks__title {
   font-size: var(--font-md);
   font-weight: var(--weight-semibold);
   color: var(--color-text-primary);
+  display: block;
   margin-bottom: var(--space-sm);
-  display: block;
 }
 
-.home-section__link {
-  font-size: var(--font-sm);
-  color: var(--color-blue-400);
-}
-
-.home-quest-card {
-  background: var(--color-bg-card-light);
-  border-radius: var(--card-radius);
-  padding: var(--card-padding);
-  box-shadow: var(--shadow-card);
-}
-
-.home-quest__name {
-  font-size: var(--font-sm);
-  color: var(--color-text-primary);
-  font-weight: var(--weight-medium);
-  margin-bottom: var(--space-xs);
-  display: block;
-}
-
-.home-quest__sub {
-  font-size: var(--font-xs);
-  color: var(--color-text-secondary);
-  display: block;
-  margin-top: var(--space-xs);
-  line-height: var(--leading-relaxed);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-tasks-list {
+.home-tasks__list {
   display: flex;
   flex-direction: column;
-  gap: var(--space-xs);
 }
 
-.home-dream-card {
-  background: var(--color-bg-card-light);
-  border-radius: var(--card-radius);
-  padding: var(--card-padding);
-  box-shadow: var(--shadow-card);
-}
-
-.home-dream__name {
-  font-size: var(--font-sm);
-  color: var(--color-text-primary);
-  font-weight: var(--weight-medium);
-  margin-bottom: var(--space-xs);
-  display: block;
-}
-
-.home-dream__stats {
-  font-size: var(--font-xs);
-  color: var(--color-text-secondary);
-  margin-top: var(--space-xs);
-  display: block;
-}
-
-.home-dream__eta {
-  font-size: var(--font-xs);
-  color: var(--color-text-muted);
-  display: block;
-  margin-top: 2px;
-}
-
-.home-encouragement {
-  background: var(--gradient-encouragement);
-  border-radius: var(--card-radius);
-  padding: var(--space-lg);
-}
-
-.home-encouragement__text {
-  font-size: var(--font-sm);
-  color: var(--color-text-inverse);
-  font-style: italic;
-  line-height: var(--leading-relaxed);
-  opacity: 0.9;
-}
-
-/* Quick Actions */
-.home-quick-actions {
+.task-item {
   display: flex;
-  gap: var(--space-sm);
-  margin-bottom: var(--section-gap);
-}
-
-.quick-action {
-  flex: 1;
-  background: var(--color-bg-card-light);
-  border-radius: var(--card-radius);
-  padding: var(--space-md);
-  box-shadow: var(--shadow-card);
-  display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: var(--space-xxs);
-  transition: transform 150ms var(--anim-ease-out);
+  padding: var(--space-sm) 0;
+  border-bottom: 1px solid var(--color-gray-100);
 }
 
-.quick-action:active {
-  transform: scale(0.97);
+.task-item:last-child {
+  border-bottom: none;
 }
 
-.quick-action__icon {
-  font-size: 28px;
+.task-item--done {
+  background: var(--color-green-light);
+  border-radius: var(--radius-sm);
+  padding: var(--space-sm);
+  margin: 2px 0;
+  border-bottom: none;
 }
 
-.quick-action__title {
-  font-size: var(--font-sm);
-  font-weight: var(--weight-semibold);
+.task-item__checkbox {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--color-gray-300);
+  margin-right: var(--space-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.task-item__checkbox--checked {
+  background: var(--color-green-400);
+  border-color: var(--color-green-400);
+}
+
+.task-item__check {
+  color: white;
+  font-size: 12px;
+  font-weight: var(--weight-bold);
+}
+
+.task-item__text {
+  font-size: 15px;
   color: var(--color-text-primary);
+  line-height: var(--leading-normal);
 }
 
-.quick-action__desc {
-  font-size: var(--font-xs);
+.task-item__text--done {
   color: var(--color-text-muted);
+  text-decoration: line-through;
 }
 
 /* Skeleton */
@@ -490,10 +456,9 @@ onMounted(() => {
   animation: skeleton-pulse 1.5s ease-in-out infinite;
 }
 
-.skeleton-card--level { height: 120px; }
-.skeleton-card--quest { height: 80px; }
-.skeleton-card--tasks { height: 150px; }
-.skeleton-card--dream { height: 90px; }
+.skeleton-card--project { height: 140px; }
+.skeleton-card--actions { height: 100px; }
+.skeleton-card--tasks { height: 180px; }
 
 @keyframes skeleton-pulse {
   0%, 100% { opacity: 0.4; }
@@ -525,56 +490,5 @@ onMounted(() => {
 .home-error__retry-text {
   font-size: var(--font-sm);
   color: var(--color-text-primary);
-}
-
-/* Fly-in animation */
-.fly-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: var(--z-animation, 800);
-}
-
-.fly-text {
-  position: absolute;
-  bottom: 120px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-weight: var(--weight-bold);
-  animation: fly-to-target 1500ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
-}
-
-.fly-text--xp {
-  color: #3B82F6;
-  font-size: 20px;
-  text-shadow: 0 1px 4px rgba(59, 130, 246, 0.4);
-}
-
-.fly-text--dream {
-  color: #FFD700;
-  font-size: 18px;
-  text-shadow: 0 1px 4px rgba(255, 215, 0, 0.4);
-}
-
-@keyframes fly-to-target {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, 0) scale(0.5);
-  }
-  15% {
-    opacity: 1;
-    transform: translate(calc(-50% + var(--fly-x) * 0.1), calc(var(--fly-y) * 0.1)) scale(1);
-  }
-  70% {
-    opacity: 0.8;
-    transform: translate(calc(-50% + var(--fly-x) * 0.85), calc(var(--fly-y) * 0.85)) scale(0.7);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(calc(-50% + var(--fly-x)), var(--fly-y)) scale(0.4);
-  }
 }
 </style>

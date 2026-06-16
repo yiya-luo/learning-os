@@ -63,6 +63,13 @@ export const api = {
 
   getRewardProgress: (pid) => request(`/projects/${pid}/reward`),
 
+  updateReward: (pid, data) =>
+    request(`/projects/${pid}/reward`, {
+      method: 'PUT',
+      header: { 'Content-Type': 'application/json' },
+      data
+    }),
+
   getUser: () => request('/users/me'),
 
   updateUser: (data) =>

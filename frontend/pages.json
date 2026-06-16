@@ -30,14 +30,16 @@
       "path": "pages/task/index",
       "style": {
         "navigationBarTitleText": "今日任务",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/heatmap/index",
       "style": {
         "navigationBarTitleText": "成长",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
@@ -51,13 +53,21 @@
       "path": "pages/profile/index",
       "style": {
         "navigationBarTitleText": "我的",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "enablePullDownRefresh": true
       }
     },
     {
       "path": "pages/import/index",
       "style": {
         "navigationBarTitleText": "导入学习计划",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/goal/index",
+      "style": {
+        "navigationBarTitleText": "设置目标",
         "navigationStyle": "custom"
       }
     },
@@ -84,7 +94,7 @@
   },
   "tabBar": {
     "color": "#8F99A3",
-    "selectedColor": "#E6B93D",
+    "selectedColor": "#2563EB",
     "backgroundColor": "#FFFFFF",
     "borderStyle": "black",
     "iconWidth": "24px",
@@ -98,21 +108,15 @@
       },
       {
         "pagePath": "pages/map/index",
-        "text": "学习地图",
+        "text": "计划",
         "iconPath": "static/tab/map-outlined.png",
         "selectedIconPath": "static/tab/map-filled.png"
       },
       {
         "pagePath": "pages/task/index",
-        "text": "今日任务",
+        "text": "打卡",
         "iconPath": "static/tab/task-outlined.png",
         "selectedIconPath": "static/tab/task-filled.png"
-      },
-      {
-        "pagePath": "pages/heatmap/index",
-        "text": "成长",
-        "iconPath": "static/tab/growth-outlined.png",
-        "selectedIconPath": "static/tab/growth-filled.png"
       },
       {
         "pagePath": "pages/profile/index",

@@ -18,7 +18,7 @@ from app.models.schemas import (
     ProjectResponse,
     StageSummary,
 )
-from app.services.parser import ParseError, parse_markdown, validate_dsl
+from app.services.parser import ParseError, normalize_markdown, parse_markdown, validate_dsl
 
 router = APIRouter(prefix="/api", tags=["Projects"])
 
@@ -108,6 +108,42 @@ def get_project(pid: str, db: Session = Depends(get_db)):
     )
 
 
+# ─── POST /api/projects/parse ─────────────────────────────────────────────────
+
+
+@router.post("/projects/parse")
+def parse_project(body: ImportRequest):
+    markdown = body.markdown
+
+    if not markdown or not markdown.strip():
+        raise HTTPException(status_code=422, detail="Markdown content is empty")
+
+    normalized = normalize_markdown(markdown)
+    parsed = parse_markdown(normalized)
+
+    if "error" in parsed:
+        raise HTTPException(status_code=422, detail=parsed["message"])
+
+    errors = validate_dsl(parsed)
+    if errors:
+        raise HTTPException(status_code=422, detail=errors[0].message)
+
+    pdata = parsed["project"]
+    stages_data = parsed.get("stages", [])
+    task_count = sum(len(s.get("tasks", [])) for s in stages_data)
+
+    return {
+        "title": pdata.get("title", ""),
+        "description": pdata.get("description", ""),
+        "stage_count": len(stages_data),
+        "task_count": task_count,
+        "stages": [
+            {"title": s.get("title", f"Stage {i+1}"), "task_count": len(s.get("tasks", []))}
+            for i, s in enumerate(stages_data)
+        ],
+    }
+
+
 # ─── POST /api/projects/import ─────────────────────────────────────────────────
 
 
@@ -125,7 +161,8 @@ def import_project(body: ImportRequest, db: Session = Depends(get_db)):
             },
         )
 
-    parsed = parse_markdown(markdown)
+    normalized = normalize_markdown(markdown)
+    parsed = parse_markdown(normalized)
 
     if "error" in parsed:
         raise HTTPException(

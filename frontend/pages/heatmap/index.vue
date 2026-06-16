@@ -136,6 +136,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { api } from '@/utils/api'
 
 const isLoading = ref(true)
@@ -270,6 +271,11 @@ function goTasks() {
 
 onMounted(() => {
   loadHeatmap()
+})
+
+onPullDownRefresh(async () => {
+  await loadHeatmap()
+  uni.stopPullDownRefresh()
 })
 </script>
 

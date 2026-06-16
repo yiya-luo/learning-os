@@ -2,11 +2,12 @@
   <view class="task-page">
     <!-- Nav header -->
     <view class="task-nav">
-      <text class="task-nav__back" @tap="goBack">← 返回</text>
+      <view />
       <text class="task-nav__title">今日任务</text>
       <text v-if="taskStore.estimatedTime > 0" class="task-nav__time">
         {{ formatTime(taskStore.estimatedTime) }}
       </text>
+      <view v-else />
     </view>
 
     <!-- Loading skeleton -->
@@ -117,8 +118,8 @@
           @tap="handleCheckin"
         >
           <text v-if="checkinLoading" class="task-checkin__spinner" />
-          <text v-else-if="checkinSuccess" class="task-checkin__label">✅ 全部完成,打卡!</text>
-          <text v-else class="task-checkin__label">✨ 完成打卡</text>
+          <text v-else-if="checkinSuccess" class="task-checkin__label">✅ 打卡完成!</text>
+          <text v-else class="task-checkin__label">✨ 打卡 {{ checkinCount }} 个任务</text>
         </view>
       </view>
 
@@ -139,6 +140,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { onPullDownRefresh } from '@dcloudio/uni-app'
 import { api } from '@/utils/api'
 import { useUserStore } from '@/store/user'
 import { useProjectStore } from '@/store/project'
@@ -165,10 +167,14 @@ const animationXP = ref(0)
 const animationDream = ref(0)
 
 const checkinBtnClass = computed(() => ({
-  'task-checkin-btn--disabled': taskStore.totalCount === 0,
+  'task-checkin-btn--disabled': checkinCount.value === 0,
   'task-checkin-btn--active': taskStore.allDone,
   'task-checkin-btn--loading': checkinLoading.value
 }))
+
+const checkinCount = computed(() => {
+  return taskStore.todayTasks.filter(t => t.status === 'doing' || t.status === 'done').length
+})
 
 function formatTime(minutes) {
   const h = Math.floor(minutes / 60)
@@ -197,7 +203,7 @@ function handleTaskTap(task) {
 }
 
 async function handleCheckin() {
-  if (taskStore.totalCount === 0 || checkinLoading.value) return
+  if (checkinCount.value === 0 || checkinLoading.value) return
 
   const tasksToCheckin = taskStore.todayTasks.filter(
     t => t.status === 'doing' || t.status === 'done'
@@ -211,7 +217,6 @@ async function handleCheckin() {
   checkinLoading.value = true
 
   try {
-    // Check in the first doing task and accumulate rewards
     let totalXP = 0
     let totalDream = 0
 
@@ -224,9 +229,8 @@ async function handleCheckin() {
         if (result.new_total_xp !== undefined) {
           userStore.applyCheckinResult(result)
         }
-        break // Only checkin one task to trigger the animation
       } catch (e) {
-        // Continue to next
+        // Skip already-checked-in tasks
       }
     }
 
@@ -294,6 +298,11 @@ function goMap() { uni.switchTab({ url: '/pages/map/index' }) }
 
 onMounted(() => {
   loadTasks()
+})
+
+onPullDownRefresh(async () => {
+  await loadTasks()
+  uni.stopPullDownRefresh()
 })
 </script>
 
