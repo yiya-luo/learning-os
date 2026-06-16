@@ -30,8 +30,13 @@ jobs:
       - name: Run tests
         run: pytest tests/ -v
 
-  frontend-lint:
+  deploy-miniprogram:
     runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: backend-test
+    defaults:
+      run:
+        working-directory: frontend
     steps:
       - uses: actions/checkout@v4
 
@@ -39,10 +44,22 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Lint frontend (if configured)
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build mp-weixin
+        run: npm run build:mp-weixin
+
+      - name: Write upload key
+        run: echo "${{ secrets.WECHAT_UPLOAD_KEY }}" > private.key
+
+      - name: Upload to WeChat
         run: |
-          if [ -f frontend/package.json ]; then
-            cd frontend && npm ci && npm run lint
-          else
-            echo "Frontend not yet set up, skipping lint."
-          fi
+          VERSION=$(node -p "require('./package.json').version")
+          npx miniprogram-ci upload \
+            --pp dist/build/mp-weixin \
+            --pkp private.key \
+            --appid ${{ secrets.WECHAT_APPID }} \
+            --uv "$VERSION" \
+            --ud "CI auto deploy $(date +%Y%m%d%H%M)" \
+            --enable-es6 true
