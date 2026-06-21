@@ -5,6 +5,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.database import get_db
 from app.models.models import Achievement, Checkin, Project, Task, User
 from app.models.schemas import (
@@ -29,11 +30,7 @@ router = APIRouter(prefix="/api", tags=["Progress"])
 
 
 @router.get("/users/me/xp", response_model=XpResponse)
-def get_user_xp(db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+def get_user_xp(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     level_info = get_level_info(user.xp)
     total_completed = db.query(Checkin).filter(Checkin.user_id == user.id).count()
     total_dream = (
@@ -54,11 +51,7 @@ def get_user_xp(db: Session = Depends(get_db)):
 
 
 @router.get("/users/me/streak", response_model=StreakResponse)
-def get_user_streak(db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+def get_user_streak(user: User = Depends(get_current_user)):
     today_str = date.today().isoformat()
     checked_in_today = user.last_checkin_date == today_str
 
@@ -71,17 +64,14 @@ def get_user_streak(db: Session = Depends(get_db)):
 
 
 @router.get("/projects/{pid}/reward", response_model=RewardResponse)
-def get_project_reward(pid: str, db: Session = Depends(get_db)):
+def get_project_reward(pid: str, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == pid).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    user = db.query(User).filter(User.id == "u1").first()
-    total_xp = user.xp if user else 0
-
     dream_progress = calculate_dream_progress(
         reward_price=project.reward_price,
-        total_xp_earned=total_xp,
+        total_xp_earned=user.xp,
     )
 
     estimated_days = None
@@ -126,10 +116,7 @@ _ACH_ICONS = {
 
 
 @router.get("/users/me/achievements", response_model=AchievementsResponse)
-def get_user_achievements(db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+def get_user_achievements(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
 
     earned = (
         db.query(Achievement)
@@ -166,19 +153,15 @@ def get_user_achievements(db: Session = Depends(get_db)):
 
 
 @router.get("/users/me/analytics", response_model=AnalyticsResponse)
-def get_user_analytics(period: str = "week", db: Session = Depends(get_db)):
+def get_user_analytics(period: str = "week", user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from app.services.analytics import get_analytics
 
-    result = get_analytics(user_id="u1", period=period, db=db)
+    result = get_analytics(user_id=user.id, period=period, db=db)
     return result
 
 
 @router.get("/users/me/milestones", response_model=MilestonesResponse)
-def get_user_milestones(db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+def get_user_milestones(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from app.services.milestones import evaluate_milestones
 
     milestones = evaluate_milestones(user, db)
@@ -212,16 +195,13 @@ def get_user_timeline(
     page: int = 1,
     page_size: int = 20,
     filter: str = "all",
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     from app.services.timeline import get_timeline
 
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
     result = get_timeline(
-        user_id="u1",
+        user_id=user.id,
         page=page,
         page_size=page_size,
         filter_type=filter,

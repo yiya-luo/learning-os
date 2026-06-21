@@ -19,6 +19,8 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(String, primary_key=True, default=_uuid)
+    openid = Column(String, unique=True, nullable=True, index=True)
+    session_token = Column(String, unique=True, nullable=True, index=True)
     nickname = Column(String, nullable=False, default="Learner")
     avatar = Column(String, nullable=True)
     xp = Column(Integer, nullable=False, default=0)
@@ -38,6 +40,7 @@ class Project(Base):
     __tablename__ = "projects"
 
     id = Column(String, primary_key=True, default=_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True, index=True)
     title = Column(String, nullable=False)
     description = Column(String, default="")
     reward = Column(String, nullable=True)

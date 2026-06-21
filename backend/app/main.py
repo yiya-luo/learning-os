@@ -12,9 +12,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.api import project, task, progress, user, phase2  # noqa: E402
+from app.api import auth, project, task, progress, user, phase2  # noqa: E402
 from app.database import init_db  # noqa: E402
 
+app.include_router(auth.router)
 app.include_router(project.router)
 app.include_router(task.router)
 app.include_router(progress.router)

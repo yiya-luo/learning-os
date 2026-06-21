@@ -1,8 +1,9 @@
 """User API — get and update current user profile."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.database import get_db
 from app.models.models import User
 from app.models.schemas import UpdateUserRequest, UserResponse
@@ -27,19 +28,12 @@ def _user_to_response(user: User, level_info=None) -> UserResponse:
 
 
 @router.get("/users/me", response_model=UserResponse)
-def get_current_user(db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+def get_me(user: User = Depends(get_current_user)):
     return _user_to_response(user)
 
 
 @router.patch("/users/me", response_model=UserResponse)
-def update_current_user(body: UpdateUserRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+def update_me(body: UpdateUserRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if body.nickname is not None:
         user.nickname = body.nickname
     if body.avatar is not None:

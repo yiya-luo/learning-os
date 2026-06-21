@@ -7,8 +7,9 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.database import get_db
-from app.models.models import Project, Stage, Task
+from app.models.models import Project, Stage, Task, User
 from app.models.schemas import (
     CreateProjectRequest,
     ImportRequest,
@@ -44,9 +45,10 @@ def _now() -> str:
 
 
 @router.post("/projects", status_code=201, response_model=ProjectResponse)
-def create_project(body: CreateProjectRequest, db: Session = Depends(get_db)):
+def create_project(body: CreateProjectRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     project = Project(
         id=uuid.uuid4().hex[:16],
+        user_id=user.id,
         title=body.title,
         description=body.description or "",
         reward=body.reward,
@@ -65,8 +67,8 @@ def create_project(body: CreateProjectRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/projects", response_model=ProjectListResponse)
-def list_projects(db: Session = Depends(get_db)):
-    projects = db.query(Project).order_by(Project.created_at.desc()).all()
+def list_projects(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    projects = db.query(Project).filter(Project.user_id == user.id).order_by(Project.created_at.desc()).all()
     return {"projects": [_project_to_response(p) for p in projects]}
 
 
@@ -148,7 +150,7 @@ def parse_project(body: ImportRequest):
 
 
 @router.post("/projects/import", status_code=201, response_model=ImportResponse)
-def import_project(body: ImportRequest, db: Session = Depends(get_db)):
+def import_project(body: ImportRequest, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     markdown = body.markdown
 
     if not markdown or not markdown.strip():
@@ -191,6 +193,7 @@ def import_project(body: ImportRequest, db: Session = Depends(get_db)):
 
     project = Project(
         id=uuid.uuid4().hex[:16],
+        user_id=user.id,
         title=pdata["title"],
         description=pdata.get("description", "") or "",
         reward=pdata.get("reward"),

@@ -20,11 +20,20 @@ from app.services.analytics import (  # noqa: E402
     _date_range_for_period,
     get_analytics,
 )
+from fastapi import Depends
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from app.main import app  # noqa: E402
+from app.auth import get_current_user as _get_current_user  # noqa: E402
+from app.database import get_db  # noqa: E402
 
 client = TestClient(app)
+
+
+def _override_get_current_user(db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == "u1").first()
+    return user
 
 
 def _today() -> date:
@@ -40,6 +49,8 @@ def fresh_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
+    app.dependency_overrides[_get_current_user] = _override_get_current_user
+
     db = SessionLocal()
     if not db.query(User).filter(User.id == "u1").first():
         db.add(User(id="u1", nickname="Learner"))
@@ -47,6 +58,8 @@ def fresh_db():
     db.close()
 
     yield
+
+    app.dependency_overrides.pop(_get_current_user, None)
 
     db = SessionLocal()
     db.close()

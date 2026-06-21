@@ -8,6 +8,7 @@ from datetime import date, datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
+from app.auth import get_current_user
 from app.database import get_db
 from app.models.models import Achievement, Checkin, Project, Stage, Task, User
 from app.models.schemas import (
@@ -68,13 +69,9 @@ def _now() -> str:
 
 
 @router.get("/users/me/heatmap", response_model=HeatmapResponse)
-def get_heatmap(days: int = 365, db: Session = Depends(get_db)):
+def get_heatmap(days: int = 365, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if days < 1 or days > 730:
         raise HTTPException(status_code=422, detail="days must be between 1 and 730")
-
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
 
     today = date.today()
     start_date = today - timedelta(days=days - 1)
@@ -82,7 +79,7 @@ def get_heatmap(days: int = 365, db: Session = Depends(get_db)):
     checkins = (
         db.query(Checkin)
         .filter(
-            Checkin.user_id == "u1",
+            Checkin.user_id == user.id,
             Checkin.checked_at >= start_date.isoformat(),
             Checkin.checked_at <= today.isoformat() + "T23:59:59",
         )
@@ -343,12 +340,8 @@ def get_stage_detail(pid: str, sid: str, db: Session = Depends(get_db)):
 
 
 @router.get("/users/me/achievements", response_model=AchievementsResponse)
-def get_achievements(db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    earned_records = db.query(Achievement).filter(Achievement.user_id == "u1").all()
+def get_achievements(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    earned_records = db.query(Achievement).filter(Achievement.user_id == user.id).all()
     earned_map = {r.achievement_key: r.unlocked_at for r in earned_records}
 
     result: list[AchievementItem] = []
@@ -381,11 +374,7 @@ def get_achievements(db: Session = Depends(get_db)):
 
 
 @router.patch("/users/me/theme", response_model=ThemeResponse)
-def update_theme(theme: ThemeUpdate, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.id == "u1").first()
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-
+def update_theme(theme: ThemeUpdate, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     user.theme = theme.theme
     user.updated_at = _now()
     db.commit()

@@ -4,7 +4,9 @@ import os
 from datetime import date
 
 import pytest
+from fastapi import Depends
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 # Use in-memory SQLite for tests
 os.environ["DATABASE_URL"] = "sqlite:///./test_e2e.db"
@@ -12,7 +14,16 @@ os.environ["DATABASE_URL"] = "sqlite:///./test_e2e.db"
 from app.database import SessionLocal, engine, Base  # noqa: E402
 from app.main import app  # noqa: E402
 
+from app.auth import get_current_user  # noqa: E402
+from app.database import get_db  # noqa: E402
+from app.models.models import User  # noqa: E402
+
 client = TestClient(app)
+
+
+def _override_get_current_user(db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == "u1").first()
+    return user
 
 
 def _detail(resp):
@@ -30,6 +41,8 @@ def fresh_db():
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
 
+    app.dependency_overrides[get_current_user] = _override_get_current_user
+
     db = SessionLocal()
     from app.models.models import User
 
@@ -40,6 +53,7 @@ def fresh_db():
 
     yield
 
+    app.dependency_overrides.pop(get_current_user, None)
     db = SessionLocal()
     db.close()
 

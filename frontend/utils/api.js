@@ -2,13 +2,30 @@
 const API_BASE = 'https://learningos-268322-8-1441734924.sh.run.tcloudbase.com/api'
 const BASE_URL = API_BASE
 
-async function request(url, options = {}) {
+function getToken() {
+  return uni.getStorageSync('token')
+}
+
+async function request(url, options = {}, _retry = false) {
   try {
+    const token = getToken()
+    const header = { ...(options.header || {}) }
+    if (token) {
+      header['Authorization'] = `Bearer ${token}`
+    }
     const response = await uni.request({
       url: `${BASE_URL}${url}`,
       timeout: 15000,
-      ...options
+      ...options,
+      header
     })
+    if (response.statusCode === 401 && !_retry) {
+      const { silentLogin } = require('./auth')
+      const loginResult = await silentLogin()
+      if (loginResult) {
+        return request(url, options, true)
+      }
+    }
     if (response.statusCode >= 400) {
       const detail = response.data?.detail
       const msg = typeof detail === 'string' ? detail : detail?.[0]?.msg || 'Request failed'
@@ -24,6 +41,13 @@ async function request(url, options = {}) {
 }
 
 export const api = {
+  login: (code) =>
+    request('/auth/login', {
+      method: 'POST',
+      header: { 'Content-Type': 'application/json' },
+      data: { code }
+    }),
+
   getProjects: () => request('/projects'),
 
   getProject: (pid) => request(`/projects/${pid}`),

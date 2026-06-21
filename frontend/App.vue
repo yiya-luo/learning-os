@@ -15,6 +15,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { onLaunch } from '@dcloudio/uni-app'
+import { silentLogin } from '@/utils/auth'
 import { useEncouragementStore } from '@/store/encouragement'
 import EncouragementModal from '@/components/EncouragementModal.vue'
 
@@ -22,16 +24,17 @@ const encouragementStore = useEncouragementStore()
 const theme = ref('light')
 const statusBarHeight = ref(20)
 
+onLaunch(async () => {
+  await silentLogin()
+})
+
 onMounted(() => {
   try {
-    // Use WeChat capsule button position as reference (standard for custom nav bar)
     const menuButton = uni.getMenuButtonBoundingClientRect()
     if (menuButton) {
-      // Content starts right below the capsule button
       statusBarHeight.value = menuButton.top + menuButton.height
     }
   } catch {
-    // Fallback: status bar + capsule estimate
     try {
       const info = uni.getSystemInfoSync()
       statusBarHeight.value = (info.statusBarHeight || 20) + 50
